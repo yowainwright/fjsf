@@ -57,9 +57,22 @@ const renderPrompt = (query: string): string => {
 };
 
 const renderVisibleScripts = (state: State): string => {
-  const visibleMatches = state.matches.slice(0, MAX_VISIBLE_ITEMS);
+  const selectedIndex = state.selectedIndex;
+  const totalMatches = state.matches.length;
+
+  const halfWindow = Math.floor(MAX_VISIBLE_ITEMS / 2);
+  let startIndex = Math.max(0, selectedIndex - halfWindow);
+  const endIndex = Math.min(totalMatches, startIndex + MAX_VISIBLE_ITEMS);
+
+  const actualVisible = endIndex - startIndex;
+  if (actualVisible < MAX_VISIBLE_ITEMS && totalMatches >= MAX_VISIBLE_ITEMS) {
+    startIndex = Math.max(0, endIndex - MAX_VISIBLE_ITEMS);
+  }
+
+  const visibleMatches = state.matches.slice(startIndex, endIndex);
   const mapper = (match: FuzzyMatch<PackageScript>, idx: number): string => {
-    const isSelected = idx === state.selectedIndex;
+    const absoluteIndex = startIndex + idx;
+    const isSelected = absoluteIndex === selectedIndex;
     return formatScript(match, isSelected);
   };
   const lines = visibleMatches.map(mapper);

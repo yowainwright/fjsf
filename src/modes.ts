@@ -1,4 +1,11 @@
-export type AppMode = "scripts" | "find" | "path" | "exec" | "help" | "quit";
+export type AppMode =
+  | "scripts"
+  | "find"
+  | "path"
+  | "exec"
+  | "help"
+  | "quit"
+  | "init";
 
 export interface ModeConfig {
   mode: AppMode;
@@ -19,6 +26,7 @@ USAGE:
   fjsf p <file>             Short form of path
   fjsf exec <file> <key>    Execute a specific key from JSON file
   fjsf e <file> <key>       Short form of exec
+  fjsf init                 Setup shell integration (alias, autocomplete)
   fjsf help                 Show this help
   fjsf h                    Short form of help
   fjsf quit                 Exit
@@ -63,6 +71,11 @@ export const parseCliArgs = (args: string[]): ModeConfig => {
   const shouldQuit = isQuitMode || isQuitShorthand;
   if (shouldQuit) {
     return Object.assign({}, { mode: "quit" as const });
+  }
+
+  const isInitMode = command === "init";
+  if (isInitMode) {
+    return Object.assign({}, { mode: "init" as const });
   }
 
   const isFindMode = command === "find";

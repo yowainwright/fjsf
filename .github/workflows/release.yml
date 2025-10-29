@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-binaries:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: bun-linux-x64
+            artifact: fjsf-linux-x64
+          - os: macos-latest
+            target: bun-darwin-x64
+            artifact: fjsf-darwin-x64
+          - os: macos-latest
+            target: bun-darwin-arm64
+            artifact: fjsf-darwin-arm64
+          - os: windows-latest
+            target: bun-windows-x64
+            artifact: fjsf-windows-x64.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build binary
+        run: bun build src/cli.ts --compile --target=${{ matrix.target }} --outfile ./dist/${{ matrix.artifact }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ./dist/${{ matrix.artifact }}
+
+  create-release:
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./dist
+
+      - name: Display structure
+        run: ls -R ./dist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ./dist/fjsf-linux-x64/fjsf-linux-x64
+            ./dist/fjsf-darwin-x64/fjsf-darwin-x64
+            ./dist/fjsf-darwin-arm64/fjsf-darwin-arm64
+            ./dist/fjsf-windows-x64.exe/fjsf-windows-x64.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

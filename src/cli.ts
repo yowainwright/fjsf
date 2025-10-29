@@ -3,6 +3,7 @@
 import { run } from "./app.ts";
 import { runJsonApp } from "./json/app.ts";
 import { executeKey } from "./executor.ts";
+import { runInit } from "./init.ts";
 import { parseCliArgs, getModeTitle, showHelp } from "./modes.ts";
 
 const args = process.argv.slice(2);
@@ -16,6 +17,12 @@ if (isHelpMode) {
 
 const isQuitMode = config.mode === "quit";
 if (isQuitMode) {
+  process.exit(0);
+}
+
+const isInitMode = config.mode === "init";
+if (isInitMode) {
+  runInit();
   process.exit(0);
 }
 

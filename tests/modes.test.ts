@@ -65,6 +65,11 @@ describe("parseCliArgs", () => {
     expect(config.mode).toBe("quit");
   });
 
+  it("parses init mode", () => {
+    const config = parseCliArgs(["init"]);
+    expect(config.mode).toBe("init");
+  });
+
   it("parses .json file as scripts mode with specific file", () => {
     const config = parseCliArgs(["./package.json"]);
     expect(config.mode).toBe("scripts");
