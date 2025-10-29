@@ -1,6 +1,6 @@
 {
   "name": "fjsf",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "CLI tool for fuzzy searching npm scripts and JSON files with dot notation in monorepos",
   "keywords": [
     "fuzzy",
