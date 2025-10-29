@@ -11,4 +11,4 @@ export interface PackageJson {
   workspaces?: string[] | { packages: string[] };
 }
 
-export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
+export type PackageManager = "npm" | "pnpm" | "yarn" | "bun";

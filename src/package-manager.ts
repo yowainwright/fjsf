@@ -1,48 +1,89 @@
-import { existsSync } from 'fs';
-import { join } from 'path';
-import type { PackageManager } from './types.ts';
+import { existsSync } from "fs";
+import { join } from "path";
+import type { PackageManager } from "./types.ts";
 
-export function detectPackageManager(cwd: string = process.cwd()): PackageManager {
-  if (existsSync(join(cwd, 'bun.lockb'))) {
-    return 'bun';
+export function detectPackageManager(
+  cwd: string = process.cwd(),
+): PackageManager {
+  const bunLockPath = join(cwd, "bun.lockb");
+  const bunLockExists = existsSync(bunLockPath);
+  if (bunLockExists) {
+    return "bun";
   }
-  if (existsSync(join(cwd, 'pnpm-lock.yaml'))) {
-    return 'pnpm';
+
+  const pnpmLockPath = join(cwd, "pnpm-lock.yaml");
+  const pnpmLockExists = existsSync(pnpmLockPath);
+  if (pnpmLockExists) {
+    return "pnpm";
   }
-  if (existsSync(join(cwd, 'yarn.lock'))) {
-    return 'yarn';
+
+  const yarnLockPath = join(cwd, "yarn.lock");
+  const yarnLockExists = existsSync(yarnLockPath);
+  if (yarnLockExists) {
+    return "yarn";
   }
-  if (existsSync(join(cwd, 'package-lock.json'))) {
-    return 'npm';
+
+  const npmLockPath = join(cwd, "package-lock.json");
+  const npmLockExists = existsSync(npmLockPath);
+  if (npmLockExists) {
+    return "npm";
   }
-  return 'npm';
+
+  return "npm";
 }
 
 export function getRunCommand(packageManager: PackageManager): string {
-  switch (packageManager) {
-    case 'bun':
-      return 'bun run';
-    case 'pnpm':
-      return 'pnpm run';
-    case 'yarn':
-      return 'yarn';
-    case 'npm':
-      return 'npm run';
+  const isBun = packageManager === "bun";
+  if (isBun) {
+    return "bun run";
   }
+
+  const isPnpm = packageManager === "pnpm";
+  if (isPnpm) {
+    return "pnpm run";
+  }
+
+  const isYarn = packageManager === "yarn";
+  if (isYarn) {
+    return "yarn";
+  }
+
+  const isNpm = packageManager === "npm";
+  if (isNpm) {
+    return "npm run";
+  }
+
+  return "npm run";
 }
 
 export function getWorkspaceRunCommand(
   packageManager: PackageManager,
-  workspace: string
+  workspace: string,
 ): string {
-  switch (packageManager) {
-    case 'bun':
-      return `bun run --filter ${workspace}`;
-    case 'pnpm':
-      return `pnpm --filter ${workspace} run`;
-    case 'yarn':
-      return `yarn workspace ${workspace}`;
-    case 'npm':
-      return `npm run --workspace ${workspace}`;
+  const isBun = packageManager === "bun";
+  if (isBun) {
+    const command = "bun run --filter ".concat(workspace);
+    return command;
   }
+
+  const isPnpm = packageManager === "pnpm";
+  if (isPnpm) {
+    const command = "pnpm --filter ".concat(workspace, " run");
+    return command;
+  }
+
+  const isYarn = packageManager === "yarn";
+  if (isYarn) {
+    const command = "yarn workspace ".concat(workspace);
+    return command;
+  }
+
+  const isNpm = packageManager === "npm";
+  if (isNpm) {
+    const command = "npm run --workspace ".concat(workspace);
+    return command;
+  }
+
+  const defaultCommand = "npm run --workspace ".concat(workspace);
+  return defaultCommand;
 }
