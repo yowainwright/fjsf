@@ -1,6 +1,6 @@
-# Contributing to fpkj
+# Contributing to fjsf
 
-Thanks for your interest in contributing to fpkj! This guide will help you get started.
+Thanks for your interest in contributing to fjsf! This guide will help you get started.
 
 ## Development Setup
 

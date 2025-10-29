@@ -2,7 +2,7 @@
 
 ## Reporting Security Vulnerabilities
 
-If you discover a security vulnerability in fpkj, please report it by emailing **me@jeffry.in**.
+If you discover a security vulnerability in fjsf, please report it by emailing **me@jeffry.in**.
 
 Please do not report security vulnerabilities through public GitHub issues.
 
@@ -15,4 +15,4 @@ Please do not report security vulnerabilities through public GitHub issues.
 
 ## Supported Versions
 
-We provide security updates for the latest major version of fpkj.
+We provide security updates for the latest major version of fjsf.

@@ -68,10 +68,14 @@ jobs:
         run: |
           timeout 10s bun run src/cli.ts || echo "CLI exited as expected"
 
-      - name: Test CLI json mode
+      - name: Test CLI find mode
         run: |
-          timeout 10s bun run src/cli.ts json || echo "CLI exited as expected"
+          timeout 10s bun run src/cli.ts find package.json || echo "CLI exited as expected"
 
-      - name: Test CLI custom mode
+      - name: Test CLI path mode
         run: |
-          timeout 10s bun run src/cli.ts custom package.json || echo "CLI exited as expected"
+          timeout 10s bun run src/cli.ts path package.json || echo "CLI exited as expected"
+
+      - name: Test CLI help
+        run: |
+          bun run src/cli.ts help

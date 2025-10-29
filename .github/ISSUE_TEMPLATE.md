@@ -12,7 +12,7 @@ Brief description of the issue or feature request.
 
 - Bun version:
 - Node.js version (if applicable):
-- fpkj version:
+- fjsf version:
 - Operating system:
 
 ## Steps to reproduce (if bug)

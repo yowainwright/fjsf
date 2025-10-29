@@ -4,15 +4,16 @@ A zero-dependency CLI tool for fuzzy searching and executing npm scripts, explor
 
 ## Features
 
-- 🔍 **Scripts Mode**: Fuzzy search and execute npm scripts
-- 🔎 **Find Mode**: Find all versions of a file across your repo and fuzzy search their JSON
-- ⚡ **Exec Mode**: Execute specific keys from JSON files directly
-- 💾 **Smart Caching**: JSON files are cached in memory with mtime validation for instant searches
-- 📦 Supports monorepos with workspaces (npm, pnpm, yarn, bun)
-- 🚀 Automatic package manager detection
-- ⚡ Zero dependencies - built with Bun
-- 🎨 Interactive terminal UI with keyboard navigation
-- 📍 Shows which workspace each entry belongs to
+- **Scripts Mode**: Fuzzy search and execute npm scripts
+- **Find Mode**: Find all versions of a file across your repo and fuzzy search their JSON
+- **Path Mode**: Query a specific JSON file with fuzzy search
+- **Exec Mode**: Execute specific keys from JSON files directly
+- **Smart Caching**: JSON files are cached in memory with mtime validation for instant searches
+- Supports monorepos with workspaces (npm, pnpm, yarn, bun)
+- Automatic package manager detection
+- Zero dependencies - built with Bun
+- Interactive terminal UI with keyboard navigation
+- Shows which workspace and file each entry belongs to
 
 ## Installation
 

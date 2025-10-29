@@ -1,8 +1,25 @@
 {
   "name": "fjsf",
   "version": "0.0.0",
+  "description": "CLI tool for fuzzy searching npm scripts and JSON files with dot notation in monorepos",
+  "keywords": [
+    "fuzzy",
+    "search",
+    "json",
+    "cli",
+    "npm",
+    "scripts",
+    "monorepo",
+    "package-json",
+    "bun"
+  ],
+  "author": "Jeff Wainwright <me@jeffry.in> (https://jeffry.in)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yowainwright/fjsf"
+  },
   "type": "module",
-  "private": true,
   "bin": {
     "fjsf": "./src/cli.ts"
   },
@@ -13,7 +30,8 @@
     "lint": "oxlint src",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun run format:check && bun run lint && bun run typecheck && bun test && bun run build"
   },
   "devDependencies": {
     "@types/bun": "latest",
