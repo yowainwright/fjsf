@@ -36,6 +36,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
+    "postinstall": "bun run scripts/install-hooks.ts",
     "prepublishOnly": "bun run format:check && bun run lint && bun run typecheck && bun test && bun run build"
   },
   "devDependencies": {

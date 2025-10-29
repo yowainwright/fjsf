@@ -17,8 +17,33 @@ A zero-dependency CLI tool for fuzzy searching and executing npm scripts, explor
 
 ## Installation
 
+### npm
+
 ```bash
-bun install
+npm install -g fjsf
+```
+
+### Homebrew
+
+```bash
+brew tap yowainwright/fjsf
+brew install fjsf
+```
+
+### Binary
+
+Download the latest binary for your platform from the [releases page](https://github.com/yowainwright/fjsf/releases):
+
+- Linux: `fjsf-linux-x64`
+- macOS (Intel): `fjsf-darwin-x64`
+- macOS (ARM): `fjsf-darwin-arm64`
+- Windows: `fjsf-windows-x64.exe`
+
+Make the binary executable and move it to your PATH:
+
+```bash
+chmod +x fjsf-*
+sudo mv fjsf-* /usr/local/bin/fjsf
 ```
 
 ## Usage
@@ -105,6 +130,36 @@ fjsf e package.json scripts.dev         # Run the dev script
 
 Note: Can only execute keys that start with `scripts.` and have string values.
 
+### Shell Integration
+
+Setup shell integration for autocomplete and shortcuts:
+
+```bash
+fjsf init               # Setup autocomplete and fj alias
+```
+
+This command will:
+
+1. Detect your shell (bash, zsh, or fish)
+2. Add autocomplete for fjsf commands
+3. Add `fj` alias for quick access (if not already in use)
+4. Update your shell config file automatically
+
+After running, restart your shell or run:
+
+```bash
+source ~/.zshrc          # zsh
+source ~/.bashrc         # bash
+source ~/.config/fish/config.fish  # fish
+```
+
+Then you can use:
+
+```bash
+fj                      # Instead of fjsf
+fj find package.json    # Autocomplete for commands
+```
+
 ### Help & Quit
 
 ```bash
@@ -146,39 +201,6 @@ fjsf q                  # Short form
 3. Validates the key is a script (starts with `scripts.`)
 4. Executes the script with the appropriate package manager
 
-## Supported Package Managers
-
-- npm
-- pnpm
-- yarn
-- bun
-
-The tool detects your package manager by looking for lock files:
-
-- `bun.lockb` → bun
-- `pnpm-lock.yaml` → pnpm
-- `yarn.lock` → yarn
-- `package-lock.json` → npm
-
-## Development
-
-```bash
-bun run dev          # Run in development mode
-bun test             # Run tests
-bun run build        # Build for production
-bun run typecheck    # Type check
-bun run lint         # Lint code
-bun run format       # Format code
-```
-
-## Git Hooks
-
-The project includes custom git hooks:
-
-- `pre-commit` - Runs format check, lint, and typecheck
-- `commit-msg` - Validates conventional commit format
-- `post-merge` - Auto-installs dependencies if changed
-
 ## Project Structure
 
 ```
@@ -206,12 +228,37 @@ src/
 
 ## Architecture
 
-The codebase is built with functional programming principles:
+```mermaid
+graph TD
+    A[CLI Entry] --> B{Parse Mode}
+    B -->|scripts| C[Scripts Mode]
+    B -->|find| D[Find Mode]
+    B -->|path| E[Path Mode]
+    B -->|exec| F[Exec Mode]
+    B -->|init| G[Shell Integration]
+    B -->|help/quit| H[Exit]
 
-- Immutable state updates
-- Pure, composable functions
-- No nested loops
-- Clear separation of concerns
+    C --> I[Discover package.json]
+    I --> J[Extract Scripts]
+    J --> K[Fuzzy Search UI]
+    K --> L[Execute Script]
+
+    D --> M[Find All Files]
+    M --> N[Flatten JSON]
+    N --> O[Cache with mtime]
+    O --> K
+
+    E --> P[Load Single File]
+    P --> N
+
+    F --> Q[Read JSON]
+    Q --> R[Validate Key]
+    R --> L
+
+    G --> S[Detect Shell]
+    S --> T[Add Autocomplete]
+    T --> U[Add Alias]
+```
 
 ## License
 
