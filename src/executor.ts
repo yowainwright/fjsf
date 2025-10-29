@@ -1,31 +1,67 @@
-import { stdout, exit } from 'process';
-import { detectPackageManager, getRunCommand, getWorkspaceRunCommand } from './package-manager.ts';
-import { clearScreen, showCursor, disableRawMode, colors, colorize } from './terminal.ts';
-import type { PackageScript } from './types.ts';
+import { stdout, exit } from "process";
+import {
+  detectPackageManager,
+  getRunCommand,
+  getWorkspaceRunCommand,
+} from "./package-manager.ts";
+import {
+  clearScreen,
+  showCursor,
+  disableRawMode,
+  colors,
+  colorize,
+} from "./terminal.ts";
+import type { PackageScript } from "./types.ts";
 
-const isRootScript = (script: PackageScript): boolean =>
-  script.workspace === 'root' || script.packagePath === 'package.json';
+const isRootScript = (script: PackageScript): boolean => {
+  const isRoot = script.workspace === "root";
+  const isPackageJson = script.packagePath === "package.json";
+  return isRoot || isPackageJson;
+};
 
 const buildCommand = (script: PackageScript, cwd: string): string => {
   const packageManager = detectPackageManager(cwd);
 
-  return isRootScript(script)
-    ? `${getRunCommand(packageManager)} ${script.name}`
-    : `${getWorkspaceRunCommand(packageManager, script.workspace)} ${script.name}`;
+  const shouldUseRootCommand = isRootScript(script);
+  const runCommand = shouldUseRootCommand
+    ? getRunCommand(packageManager)
+    : getWorkspaceRunCommand(packageManager, script.workspace);
+
+  const scriptName = script.name;
+  const fullCommand = runCommand.concat(" ", scriptName);
+  return fullCommand;
 };
 
 const announceExecution = (command: string): void => {
-  stdout.write(colorize(`Running: ${command}\n\n`, colors.bright + colors.green));
+  const prefix = "Running: ";
+  const suffix = "\n\n";
+  const message = prefix.concat(command, suffix);
+  const color = colors.bright.concat(colors.green);
+  const coloredMessage = colorize(message, color);
+  stdout.write(coloredMessage);
 };
 
 const spawnProcess = async (command: string, cwd: string): Promise<number> => {
-  const proc = Bun.spawn(command.split(' '), {
-    cwd,
-    stdio: ['inherit', 'inherit', 'inherit'],
-  });
+  const commandParts = command.split(" ");
+  const stdio: ["inherit", "inherit", "inherit"] = [
+    "inherit",
+    "inherit",
+    "inherit",
+  ];
+  const options = Object.assign(
+    {},
+    {
+      cwd,
+      stdio,
+    },
+  );
+
+  const proc = Bun.spawn(commandParts, options);
 
   await proc.exited;
-  return proc.exitCode ?? 0;
+  const exitCode = proc.exitCode;
+  const fallbackExitCode = exitCode !== null ? exitCode : 0;
+  return fallbackExitCode;
 };
 
 export const executeScript = async (script: PackageScript): Promise<void> => {

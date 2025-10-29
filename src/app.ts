@@ -1,8 +1,8 @@
-import { stdin, stdout, exit } from 'process';
-import { discoverScripts } from './discover.ts';
-import { createInitialState } from './state.ts';
-import { render } from './renderer.ts';
-import { handleInput } from './input.ts';
+import { stdin, stdout, exit } from "process";
+import { discoverScripts } from "./discover.ts";
+import { createInitialState } from "./state.ts";
+import { render } from "./renderer.ts";
+import { handleInput } from "./input.ts";
 import {
   clearScreen,
   hideCursor,
@@ -11,8 +11,8 @@ import {
   disableRawMode,
   colors,
   colorize,
-} from './terminal.ts';
-import type { State } from './state.ts';
+} from "./terminal.ts";
+import type { State } from "./state.ts";
 
 const cleanup = (): void => {
   showCursor();
@@ -26,20 +26,30 @@ const exitApp = (code: number): void => {
 };
 
 const handleNoScripts = (): void => {
-  stdout.write(colorize('No scripts found in this repository\n', colors.yellow));
+  const message = "No scripts found in this repository\n";
+  const coloredMessage = colorize(message, colors.yellow);
+  stdout.write(coloredMessage);
   exit(1);
 };
 
 const handleError = (error: Error): void => {
   cleanup();
-  stdout.write(colorize('Error: ', colors.yellow) + error.message + '\n');
+  const errorPrefix = colorize("Error: ", colors.yellow);
+  const errorMessage = error.message;
+  const newline = "\n";
+  const fullMessage = errorPrefix.concat(errorMessage, newline);
+  stdout.write(fullMessage);
   exit(1);
 };
 
-const processInput = async (state: State, data: Buffer): Promise<State | null> => {
+const processInput = async (
+  state: State,
+  data: Buffer,
+): Promise<State | null> => {
   const newState = await handleInput(state, data);
 
-  if (newState === null) {
+  const shouldExit = newState === null;
+  if (shouldExit) {
     exitApp(0);
   }
 
@@ -49,19 +59,30 @@ const processInput = async (state: State, data: Buffer): Promise<State | null> =
 const runEventLoop = async (initialState: State): Promise<void> => {
   let state = initialState;
 
-  for await (const data of stdin) {
+  const stdinIterator = stdin[Symbol.asyncIterator]();
+  let result = await stdinIterator.next();
+
+  const shouldContinue = (): boolean => !result.done;
+
+  while (shouldContinue()) {
+    const data = result.value;
     const newState = await processInput(state, data);
-    if (newState) {
+    const hasNewState = newState !== null;
+
+    if (hasNewState) {
       state = newState;
       render(state);
     }
+
+    result = await stdinIterator.next();
   }
 };
 
 export const run = async (): Promise<void> => {
   const scripts = discoverScripts();
 
-  if (scripts.length === 0) {
+  const hasNoScripts = scripts.length === 0;
+  if (hasNoScripts) {
     handleNoScripts();
   }
 

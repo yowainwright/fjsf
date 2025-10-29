@@ -1,5 +1,5 @@
-import type { PackageScript } from './types.ts';
-import type { FuzzyMatch } from './fuzzy.ts';
+import type { PackageScript } from "./types.ts";
+import type { FuzzyMatch } from "./fuzzy.ts";
 
 export interface State {
   query: string;
@@ -8,18 +8,58 @@ export interface State {
   scripts: PackageScript[];
 }
 
-export const createInitialState = (scripts: PackageScript[]): State => ({
-  query: '',
-  selectedIndex: 0,
-  matches: scripts.map((item) => ({ item, score: 0, matches: [] })),
-  scripts,
-});
+export const createInitialState = (scripts: PackageScript[]): State => {
+  const emptyQuery = "";
+  const startIndex = 0;
 
-export const updateSelection = (state: State, delta: number): State => {
-  const maxIndex = state.matches.length - 1;
-  const newIndex = Math.max(0, Math.min(maxIndex, state.selectedIndex + delta));
-  return { ...state, selectedIndex: newIndex };
+  const mapper = (item: PackageScript): FuzzyMatch<PackageScript> => {
+    const match = Object.assign(
+      {},
+      {
+        item,
+        score: 0,
+        matches: [] as number[],
+      },
+    );
+    return match;
+  };
+  const initialMatches = scripts.map(mapper);
+
+  const state = Object.assign(
+    {},
+    {
+      query: emptyQuery,
+      selectedIndex: startIndex,
+      matches: initialMatches,
+      scripts,
+    },
+  );
+
+  return state;
 };
 
-export const getSelectedScript = (state: State): PackageScript | null =>
-  state.matches[state.selectedIndex]?.item ?? null;
+export const updateSelection = (state: State, delta: number): State => {
+  const matchesLength = state.matches.length;
+  const maxIndex = matchesLength - 1;
+  const currentIndex = state.selectedIndex;
+  const proposedIndex = currentIndex + delta;
+
+  const clampedMin = Math.max(0, proposedIndex);
+  const clampedMax = Math.min(maxIndex, clampedMin);
+  const newIndex = clampedMax;
+
+  const updatedState = Object.assign({}, state, { selectedIndex: newIndex });
+  return updatedState;
+};
+
+export const getSelectedScript = (state: State): PackageScript | null => {
+  const selectedIndex = state.selectedIndex;
+  const selectedMatch = state.matches[selectedIndex];
+  const matchExists = selectedMatch !== undefined;
+
+  if (matchExists) {
+    return selectedMatch.item;
+  }
+
+  return null;
+};

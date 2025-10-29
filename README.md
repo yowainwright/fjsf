@@ -1,15 +1,18 @@
-# fuzzy-npm-scripts
+# fpkj (Fuzzy Package JSON)
 
-A zero-dependency CLI tool for fuzzy searching and executing npm scripts across monorepos and regular projects.
+A zero-dependency CLI tool for fuzzy searching and executing npm scripts, exploring package.json fields with dot notation, and querying any JSON config files across monorepos and regular projects.
 
 ## Features
 
-- 🔍 Fuzzy search across all npm scripts in your repository
+- 🔍 **Scripts Mode**: Fuzzy search and execute npm scripts
+- 🗺️ **JSON Explorer Mode**: Browse any package.json field with dot notation (e.g., `dependencies.react`, `scripts.test`)
+- 📄 **Custom JSON Mode**: Query any JSON config files (tsconfig.json, etc.)
+- 💾 **Smart Caching**: JSON files are cached in memory with mtime validation for instant searches
 - 📦 Supports monorepos with workspaces (npm, pnpm, yarn, bun)
 - 🚀 Automatic package manager detection
 - ⚡ Zero dependencies - built with Bun
 - 🎨 Interactive terminal UI with keyboard navigation
-- 📍 Shows which workspace each script belongs to
+- 📍 Shows which workspace each entry belongs to
 
 ## Installation
 
@@ -19,35 +22,73 @@ bun install
 
 ## Usage
 
-Run the CLI tool in any directory containing a `package.json`:
+### Scripts Mode (Default)
+
+Search and execute npm scripts:
 
 ```bash
+fpkj
+# or in development
 bun run dev
 ```
 
-Or build and use the compiled version:
+### JSON Explorer Mode
+
+Browse all package.json fields with dot notation:
 
 ```bash
-bun run build
-./dist/cli
+fpkj json
+# or
+fpkj j
+```
+
+Search examples:
+
+- `dependencies` - View all dependencies
+- `scripts.test` - Find test scripts
+- `version` - Check versions across workspaces
+- `author` - Find author info
+
+### Custom JSON Mode
+
+Query any JSON config files:
+
+```bash
+fpkj custom tsconfig.json .eslintrc.json
+# or
+fpkj c path/to/config.json
 ```
 
 ### Keyboard Controls
 
-- Type to search for scripts
+- Type to search (fuzzy matching)
 - `↑/↓` - Navigate through results
-- `Enter` - Execute selected script
+- `Enter` - Execute selected script (scripts mode only)
 - `Esc` or `Ctrl+C` - Exit
 
 ## How It Works
 
-The tool automatically:
+**Scripts Mode:**
 
 1. Discovers all `package.json` files in your repository
 2. Extracts scripts from each package
 3. Detects your package manager (bun, pnpm, yarn, or npm)
 4. Provides fuzzy search across script names and workspaces
 5. Executes scripts with the correct package manager command
+
+**JSON Explorer Mode:**
+
+1. Discovers all `package.json` files
+2. Flattens all JSON objects into searchable dot-notation paths
+3. Caches JSON with mtime validation for fast subsequent searches
+4. Provides fuzzy search across paths, keys, and values
+
+**Custom JSON Mode:**
+
+1. Reads specified JSON files
+2. Flattens into dot-notation paths
+3. Caches for fast searching
+4. Same fuzzy search experience
 
 ## Supported Package Managers
 
@@ -57,6 +98,7 @@ The tool automatically:
 - bun
 
 The tool detects your package manager by looking for lock files:
+
 - `bun.lockb` → bun
 - `pnpm-lock.yaml` → pnpm
 - `yarn.lock` → yarn
@@ -85,18 +127,25 @@ The project includes custom git hooks:
 
 ```
 src/
-├── cli.ts           # Entry point
-├── app.ts           # Main application loop
-├── types.ts         # TypeScript types
-├── discover.ts      # Package.json discovery
-├── fuzzy.ts         # Fuzzy search algorithm
-├── search.ts        # Search state management
-├── state.ts         # Application state
-├── renderer.ts      # Terminal UI rendering
-├── input.ts         # Keyboard input handling
-├── executor.ts      # Script execution
-├── terminal.ts      # Terminal utilities
-└── package-manager.ts # Package manager detection
+├── cli.ts              # Entry point
+├── app.ts              # Scripts mode application
+├── modes.ts            # Mode detection and configuration
+├── types.ts            # TypeScript types
+├── discover.ts         # Package.json discovery (scripts)
+├── cache.ts            # JSON file caching with mtime validation
+├── fuzzy.ts            # Fuzzy search algorithm
+├── search.ts           # Search state management
+├── state.ts            # Application state
+├── renderer.ts         # Scripts mode UI rendering
+├── input.ts            # Keyboard input handling
+├── executor.ts         # Script execution
+├── terminal.ts         # Terminal utilities
+├── package-manager.ts  # Package manager detection
+└── json/
+    ├── app.ts          # JSON explorer mode application
+    ├── discover.ts     # JSON discovery and flattening
+    ├── entry.ts        # JSON entry types and flattening logic
+    └── renderer.ts     # JSON mode UI rendering
 ```
 
 ## Architecture

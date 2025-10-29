@@ -1,10 +1,10 @@
 {
-  "name": "fuzzy-npm-scripts",
+  "name": "fpkj",
   "version": "0.1.0",
   "type": "module",
   "private": true,
   "bin": {
-    "fnpm": "./src/cli.ts"
+    "fpkj": "./src/cli.ts"
   },
   "scripts": {
     "dev": "bun run src/cli.ts",
@@ -16,9 +16,13 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "oxlint": "^1.24.0"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "prettier": "^3.6.2"
   }
 }
