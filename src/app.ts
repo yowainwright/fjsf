@@ -13,6 +13,7 @@ import {
   colorize,
 } from "./terminal.ts";
 import type { State } from "./state.ts";
+import type { ModeConfig } from "./modes.ts";
 
 const cleanup = (): void => {
   showCursor();
@@ -78,8 +79,9 @@ const runEventLoop = async (initialState: State): Promise<void> => {
   }
 };
 
-export const run = async (): Promise<void> => {
-  const scripts = discoverScripts();
+export const run = async (config?: ModeConfig): Promise<void> => {
+  const filePath = config?.filePath;
+  const scripts = discoverScripts(filePath);
 
   const hasNoScripts = scripts.length === 0;
   if (hasNoScripts) {

@@ -1,7 +1,11 @@
 import { stdin, stdout, exit } from "process";
 import { fuzzySearch } from "../fuzzy.ts";
 import { renderJsonUI } from "./renderer.ts";
-import { discoverAllPackageJsons, discoverJsonEntries } from "./discover.ts";
+import {
+  discoverAllPackageJsons,
+  discoverFilesByName,
+  discoverJsonEntries,
+} from "./discover.ts";
 import {
   clearScreen,
   hideCursor,
@@ -95,7 +99,8 @@ const handleInput = async (
 
   const isCtrlC = key === "\x03";
   const isEscape = key === "\x1b";
-  const shouldExit = isCtrlC || isEscape;
+  const isQ = key === "q";
+  const shouldExit = isCtrlC || isEscape || isQ;
   if (shouldExit) return null;
 
   const isEnter = key === "\r";
@@ -202,17 +207,22 @@ export const runJsonApp = async (
   config: ModeConfig,
   title: string,
 ): Promise<void> => {
-  const isCustomMode = config.mode === "custom";
-  const customPaths = config.customPaths;
-  const hasCustomPaths = customPaths !== undefined;
-  const customPathsLength = hasCustomPaths ? customPaths.length : 0;
-  const hasCustomPathsWithLength = customPathsLength > 0;
-  const shouldUseCustomPaths =
-    isCustomMode && hasCustomPaths && hasCustomPathsWithLength;
+  const isFindMode = config.mode === "find";
+  const isPathMode = config.mode === "path";
+  const filePath = config.filePath;
+  const hasFilePath = filePath !== undefined && filePath.length > 0;
+  const shouldFindByFileName = isFindMode && hasFilePath;
+  const shouldQuerySingleFile = isPathMode && hasFilePath;
 
-  const entries = shouldUseCustomPaths
-    ? discoverJsonEntries(customPaths)
-    : discoverAllPackageJsons();
+  let entries: JsonEntry[];
+
+  if (shouldFindByFileName) {
+    entries = discoverFilesByName(filePath);
+  } else if (shouldQuerySingleFile) {
+    entries = discoverJsonEntries([filePath]);
+  } else {
+    entries = discoverAllPackageJsons();
+  }
 
   const hasNoEntries = entries.length === 0;
   if (hasNoEntries) {

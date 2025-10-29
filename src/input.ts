@@ -15,7 +15,8 @@ const KEYS = Object.assign({}, {
 const isExitKey = (key: string): boolean => {
   const isCtrlC = key === KEYS.CTRL_C;
   const isEscape = key === KEYS.ESCAPE;
-  return isCtrlC || isEscape;
+  const isQ = key === "q";
+  return isCtrlC || isEscape || isQ;
 };
 
 const isEnterKey = (key: string): boolean => key === KEYS.ENTER;

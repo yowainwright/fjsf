@@ -197,9 +197,36 @@ const getNestedScripts = (
   return scriptsArrays.reduce((acc, curr) => acc.concat(curr), []);
 };
 
-export const discoverScripts = (
-  cwd: string = process.cwd(),
-): PackageScript[] => {
+export const discoverScripts = (cwdOrFilePath?: string): PackageScript[] => {
+  let cwd: string;
+  let specificFilePath: string | undefined;
+
+  if (cwdOrFilePath) {
+    const isJsonFile = cwdOrFilePath.endsWith(".json");
+    if (isJsonFile) {
+      cwd = process.cwd();
+      specificFilePath = cwdOrFilePath;
+    } else {
+      cwd = cwdOrFilePath;
+      specificFilePath = undefined;
+    }
+  } else {
+    cwd = process.cwd();
+    specificFilePath = undefined;
+  }
+
+  if (specificFilePath) {
+    const absolutePath = resolve(cwd, specificFilePath);
+    const packageJsonExists = existsSync(absolutePath);
+
+    if (!packageJsonExists) {
+      return [];
+    }
+
+    const extractor = extractScriptsFromPackage(cwd);
+    return extractor(absolutePath);
+  }
+
   const rootPackageJsonPath = join(cwd, "package.json");
 
   const rootPackageJsonExists = existsSync(rootPackageJsonPath);

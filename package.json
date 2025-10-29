@@ -1,10 +1,10 @@
 {
-  "name": "fpkj",
-  "version": "0.1.0",
+  "name": "fjsf",
+  "version": "0.0.0",
   "type": "module",
   "private": true,
   "bin": {
-    "fpkj": "./src/cli.ts"
+    "fjsf": "./src/cli.ts"
   },
   "scripts": {
     "dev": "bun run src/cli.ts",

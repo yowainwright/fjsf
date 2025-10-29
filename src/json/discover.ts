@@ -140,3 +140,89 @@ export const discoverAllPackageJsons = (
   const packageJsonPaths = findAllPackageJsons(cwd);
   return discoverPackageJsonEntries(packageJsonPaths, cwd);
 };
+
+const searchDirectoryForFile = (
+  dir: string,
+  fileName: string,
+  depth: number,
+  maxDepth: number,
+  results: string[],
+): void => {
+  const exceedsMaxDepth = depth > maxDepth;
+  if (exceedsMaxDepth) return;
+
+  const readdirSync = require("fs").readdirSync;
+  const statSync = require("fs").statSync;
+
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return;
+  }
+
+  const entriesLength = entries.length;
+  let i = 0;
+
+  const shouldContinue = (): boolean => i < entriesLength;
+
+  while (shouldContinue()) {
+    const entry = entries[i];
+    const hasNoEntry = entry === undefined;
+
+    if (hasNoEntry) {
+      i = i + 1;
+      continue;
+    }
+
+    const shouldSkip = shouldSkipEntry(entry);
+    if (shouldSkip) {
+      i = i + 1;
+      continue;
+    }
+
+    const fullPath = join(dir, entry);
+
+    let stat;
+    try {
+      stat = statSync(fullPath);
+    } catch {
+      i = i + 1;
+      continue;
+    }
+
+    const isDir = stat.isDirectory();
+    if (isDir) {
+      const nextDepth = depth + 1;
+      searchDirectoryForFile(fullPath, fileName, nextDepth, maxDepth, results);
+      i = i + 1;
+      continue;
+    }
+
+    const matchesFileName = entry === fileName;
+    if (matchesFileName) {
+      results.push(fullPath);
+    }
+
+    i = i + 1;
+  }
+};
+
+export const findAllFilesByName = (
+  fileName: string,
+  rootDir: string = process.cwd(),
+): string[] => {
+  const results: string[] = [];
+  const maxDepth = 5;
+  const startDepth = 0;
+  searchDirectoryForFile(rootDir, fileName, startDepth, maxDepth, results);
+  return results;
+};
+
+export const discoverFilesByName = (
+  fileName: string,
+  cwd: string = process.cwd(),
+): JsonEntry[] => {
+  const filePaths = findAllFilesByName(fileName, cwd);
+  return discoverJsonEntries(filePaths, cwd);
+};
