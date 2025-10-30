@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { parseCliArgs, getModeTitle } from "../src/modes.ts";
+import { parseCliArgs, getModeTitle } from "../../src/modes.ts";
 
 describe("parseCliArgs", () => {
   it("defaults to scripts mode with no args", () => {

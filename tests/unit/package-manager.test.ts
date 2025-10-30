@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import {
   getRunCommand,
   getWorkspaceRunCommand,
-} from "../src/package-manager.ts";
+} from "../../src/package-manager.ts";
 
 describe("getRunCommand", () => {
   it("returns correct command for npm", () => {

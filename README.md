@@ -1,5 +1,9 @@
 # fjsf
 
+[![npm version](https://badge.fury.io/js/fjsf.svg)](https://www.npmjs.com/package/fjsf)
+[![GitHub Actions](https://github.com/yowainwright/fjsf/workflows/Test/badge.svg)](https://github.com/yowainwright/fjsf/actions)
+[![codecov](https://codecov.io/gh/yowainwright/fjsf/branch/main/graph/badge.svg)](https://codecov.io/gh/yowainwright/fjsf)
+
 > ### Fuzzy JSON Search & Filter
 
 A zero-dependency CLI tool for fuzzy searching and executing scripts within json. This is especially useful for exploring `package.json` fields with dot notation, and querying any JSON config files across monorepos and regular projects.

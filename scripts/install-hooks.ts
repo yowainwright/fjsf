@@ -12,7 +12,7 @@ import { $ } from 'bun';
 console.log('Running pre-commit checks...');
 
 try {
-  await $\`bun run format:check\`;
+  await $\`bun run format\`;
   await $\`bun run lint\`;
   await $\`bun run typecheck\`;
   console.log('✓ All pre-commit checks passed');

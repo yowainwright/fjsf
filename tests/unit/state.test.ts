@@ -3,8 +3,8 @@ import {
   createInitialState,
   updateSelection,
   getSelectedScript,
-} from "../src/state.ts";
-import type { PackageScript } from "../src/types.ts";
+} from "../../src/state.ts";
+import type { PackageScript } from "../../src/types.ts";
 
 describe("state", () => {
   const mockScripts: PackageScript[] = [

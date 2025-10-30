@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { flattenJson, formatValue } from "../src/json/entry.ts";
-import type { JsonObject } from "../src/json/entry.ts";
+import { flattenJson, formatValue } from "../../src/json/entry.ts";
+import type { JsonObject } from "../../src/json/entry.ts";
 
 describe("flattenJson", () => {
   it("flattens simple object", () => {

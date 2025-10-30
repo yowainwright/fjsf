@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import { handleInput } from "../src/input.ts";
-import { createInitialState } from "../src/state.ts";
-import type { PackageScript } from "../src/types.ts";
+import { handleInput } from "../../src/input.ts";
+import { createInitialState } from "../../src/state.ts";
+import type { PackageScript } from "../../src/types.ts";
 
 describe("handleInput", () => {
   const mockScripts: PackageScript[] = [
