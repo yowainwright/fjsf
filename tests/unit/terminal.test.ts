@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { colors, colorize, highlightMatches } from "../src/terminal.ts";
+import { colors, colorize, highlightMatches } from "../../src/terminal.ts";
 
 describe("terminal", () => {
   describe("colorize", () => {

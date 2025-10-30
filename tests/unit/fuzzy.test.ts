@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { fuzzySearch } from "../src/fuzzy.ts";
+import { fuzzySearch } from "../../src/fuzzy.ts";
 
 describe("fuzzySearch", () => {
   const items = [

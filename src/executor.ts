@@ -1,6 +1,6 @@
 import { stdout, exit } from "process";
 import { readFileSync } from "fs";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
 import {
   detectPackageManager,
   getRunCommand,
@@ -159,13 +159,14 @@ export const executeKey = async (config: ModeConfig): Promise<void> => {
 
     // Extract script name (everything after "scripts.")
     const scriptName = execKey.substring("scripts.".length);
-    const packageManager = detectPackageManager(cwd);
+    const packageDir = dirname(absolutePath);
+    const packageManager = detectPackageManager(packageDir);
     const runCommand = getRunCommand(packageManager);
     const fullCommand = `${runCommand} ${scriptName}`;
 
     announceExecution(fullCommand, filePath);
 
-    const exitCode = await spawnProcess(fullCommand, cwd);
+    const exitCode = await spawnProcess(fullCommand, packageDir);
     exit(exitCode);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

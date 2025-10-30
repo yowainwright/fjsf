@@ -106,10 +106,37 @@ const addToShellConfig = (
   stdout.write(colorize(`\n✓ Added to ${configFile}\n`, colors.green));
 };
 
+const installGitHooks = (): void => {
+  const isGitRepo = existsSync(".git");
+
+  if (!isGitRepo) {
+    stdout.write(
+      colorize(
+        "\nℹ️  Not in a git repository, skipping git hooks setup\n",
+        colors.dim,
+      ),
+    );
+    return;
+  }
+
+  stdout.write(colorize("\nInstalling git hooks...\n", colors.dim));
+
+  const result = spawnSync("bun", ["run", "scripts/install-hooks.ts"], {
+    encoding: "utf-8",
+    stdio: "inherit",
+  });
+
+  if (result.status === 0) {
+    stdout.write(colorize("✓ Git hooks installed\n", colors.green));
+  } else {
+    stdout.write(colorize("⚠️  Failed to install git hooks\n", colors.yellow));
+  }
+};
+
 export const runInit = (): void => {
   stdout.write(
     colorize(
-      "\n🚀 fjsf shell integration setup\n\n",
+      "\nfjsf shell integration setup\n\n",
       colors.bright.concat(colors.cyan),
     ),
   );
@@ -159,6 +186,8 @@ export const runInit = (): void => {
     addToShellConfig(configFile, aliasScript, "# fjsf alias");
     stdout.write(colorize("\n✓ Added 'fj' alias for fjsf\n", colors.green));
   }
+
+  installGitHooks();
 
   stdout.write(
     colorize("\n✅ Setup complete!\n", colors.bright.concat(colors.green)),

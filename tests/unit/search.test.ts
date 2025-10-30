@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import { updateQuery } from "../src/search.ts";
-import { createInitialState } from "../src/state.ts";
-import type { PackageScript } from "../src/types.ts";
+import { updateQuery } from "../../src/search.ts";
+import { createInitialState } from "../../src/state.ts";
+import type { PackageScript } from "../../src/types.ts";
 
 describe("updateQuery", () => {
   const mockScripts: PackageScript[] = [

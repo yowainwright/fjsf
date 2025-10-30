@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs";
 import { join } from "path";
-import { discoverScripts } from "../src/discover.ts";
-import { clearCache } from "../src/cache.ts";
+import { discoverScripts } from "../../src/discover.ts";
+import { clearCache } from "../../src/cache.ts";
 
 const TEST_DIR = join(process.cwd(), "test-fixtures");
 

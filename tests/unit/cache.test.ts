@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, writeFileSync, rmSync, existsSync, utimesSync } from "fs";
 import { join } from "path";
-import { readJsonWithCache, clearCache, getCacheSize } from "../src/cache.ts";
+import {
+  readJsonWithCache,
+  clearCache,
+  getCacheSize,
+} from "../../src/cache.ts";
 
 const TEST_DIR = join(process.cwd(), "test-cache-fixtures");
 

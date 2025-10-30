@@ -1,0 +1,66 @@
+services:
+  test-exec:
+    build:
+      context: ../../
+      dockerfile: tests/e2e/dockerfiles/Dockerfile.exec
+    container_name: fjsf-e2e-test-exec
+    environment:
+      - NODE_ENV=test
+    profiles:
+      - exec
+      - all
+
+  test-run:
+    build:
+      context: ../../
+      dockerfile: tests/e2e/dockerfiles/Dockerfile.run
+    container_name: fjsf-e2e-test-run
+    environment:
+      - NODE_ENV=test
+    profiles:
+      - run
+      - all
+
+  test-find:
+    build:
+      context: ../../
+      dockerfile: tests/e2e/dockerfiles/Dockerfile.find
+    container_name: fjsf-e2e-test-find
+    environment:
+      - NODE_ENV=test
+    profiles:
+      - find
+      - all
+
+  test-init:
+    build:
+      context: ../../
+      dockerfile: tests/e2e/dockerfiles/Dockerfile.init
+    container_name: fjsf-e2e-test-init
+    environment:
+      - NODE_ENV=test
+    profiles:
+      - init
+      - all
+
+  test-path:
+    build:
+      context: ../../
+      dockerfile: tests/e2e/dockerfiles/Dockerfile.path
+    container_name: fjsf-e2e-test-path
+    environment:
+      - NODE_ENV=test
+    profiles:
+      - path
+      - all
+
+  test-scripts:
+    build:
+      context: ../../
+      dockerfile: tests/e2e/dockerfiles/Dockerfile.scripts
+    container_name: fjsf-e2e-test-scripts
+    environment:
+      - NODE_ENV=test
+    profiles:
+      - scripts
+      - all

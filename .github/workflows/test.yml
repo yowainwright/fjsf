@@ -47,8 +47,32 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Run unit tests
-        run: bun test
+      - name: Run unit tests with coverage
+        run: bun test --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run e2e tests
+        run: bun run test:e2e
 
   cli-smoke-test:
     runs-on: ubuntu-latest
@@ -64,18 +88,8 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Test CLI scripts mode
-        run: |
-          timeout 10s bun run src/cli.ts || echo "CLI exited as expected"
-
-      - name: Test CLI find mode
-        run: |
-          timeout 10s bun run src/cli.ts find package.json || echo "CLI exited as expected"
-
-      - name: Test CLI path mode
-        run: |
-          timeout 10s bun run src/cli.ts path package.json || echo "CLI exited as expected"
-
       - name: Test CLI help
-        run: |
-          bun run src/cli.ts help
+        run: bun run src/cli.ts help
+
+      - name: Test CLI exec mode
+        run: bun run src/cli.ts exec package.json scripts.test
