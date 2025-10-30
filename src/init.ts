@@ -179,9 +179,7 @@ const removeOldFjsfConfig = (configFile: string): void => {
   const newContent = filteredLines.join("\n");
   if (newContent !== fileContent) {
     writeFileSync(configFile, newContent);
-    stdout.write(
-      colorize("\n✓ Removed old fjsf configuration\n", colors.dim),
-    );
+    stdout.write(colorize("\n✓ Removed old fjsf configuration\n", colors.dim));
   }
 };
 
@@ -273,11 +271,7 @@ export const runInit = (): void => {
 
   const interceptorScript = getPackageManagerInterceptors(shell);
   if (interceptorScript) {
-    addToShellConfig(
-      configFile,
-      interceptorScript,
-      "# fjsf interceptors",
-    );
+    addToShellConfig(configFile, interceptorScript, "# fjsf interceptors");
   }
 
   const autocompleteScript = getAutocompleteScript(shell);

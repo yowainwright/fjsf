@@ -3,7 +3,12 @@ import { discoverScripts } from "../discover.ts";
 import { createInitialState } from "../state.ts";
 import { updateQuery } from "../search.ts";
 import { updateSelection, getSelectedScript } from "../state.ts";
-import { hideCursor, showCursor, enableRawMode, disableRawMode } from "../terminal.ts";
+import {
+  hideCursor,
+  showCursor,
+  enableRawMode,
+  disableRawMode,
+} from "../terminal.ts";
 import { renderTooltip, clearTooltipFinal } from "./renderer.ts";
 import type { State } from "../state.ts";
 
@@ -34,7 +39,10 @@ const isExitKey = (key: string): boolean => {
   return key === KEYS.CTRL_C || key === KEYS.ESCAPE || key === "q";
 };
 
-const processInput = async (state: State, data: Buffer): Promise<State | null> => {
+const processInput = async (
+  state: State,
+  data: Buffer,
+): Promise<State | null> => {
   const key = data.toString();
 
   if (isExitKey(key)) {

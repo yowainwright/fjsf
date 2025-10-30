@@ -1,5 +1,8 @@
 import { describe, it, expect, mock, beforeEach } from "bun:test";
-import { renderTooltip, clearTooltipFinal } from "../../src/tooltip/renderer.ts";
+import {
+  renderTooltip,
+  clearTooltipFinal,
+} from "../../src/tooltip/renderer.ts";
 import { createInitialState } from "../../src/state.ts";
 import { updateQuery } from "../../src/search.ts";
 import type { PackageScript } from "../../src/types.ts";

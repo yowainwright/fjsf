@@ -15,6 +15,7 @@ A zero-dependency CLI tool for fuzzy searching and executing scripts within json
 ## Why fjsf?
 
 **Stop typing full script names.** Run `fjsf init` once, then just type `npm run t<TAB>` and get an interactive tooltip with all your scripts. That's it. No more:
+
 - Typing `npm run test:unit:watch:verbose`
 - Opening `package.json` to remember script names
 - Scrolling through `npm run` help text
@@ -179,6 +180,7 @@ bun run li<TAB>         # Shows: lint, lint:fix...
 ```
 
 **How it works:**
+
 - Type `npm run` (or pnpm/yarn/bun) followed by partial script name
 - Press **Tab** to trigger the interactive tooltip
 - The tooltip appears right at your cursor showing fuzzy-matched scripts
@@ -188,6 +190,7 @@ bun run li<TAB>         # Shows: lint, lint:fix...
 - The same fjsf interface you know, but inline in your terminal
 
 **Why this is awesome:**
+
 - No context switching - stays in your terminal flow
 - Fuzzy matching means `npm run t` finds `test`, `typecheck`, `test:watch`
 - Works across all package managers (npm, pnpm, yarn, bun)
