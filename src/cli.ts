@@ -4,6 +4,7 @@ import { run } from "./app.ts";
 import { runJsonApp } from "./json/app.ts";
 import { executeKey } from "./executor.ts";
 import { runInit } from "./init.ts";
+import { runWidget } from "./tooltip/index.ts";
 import { parseCliArgs, getModeTitle, showHelp } from "./modes.ts";
 
 const args = process.argv.slice(2);
@@ -23,6 +24,13 @@ if (isQuitMode) {
 const isInitMode = config.mode === "init";
 if (isInitMode) {
   runInit();
+  process.exit(0);
+}
+
+const isWidgetMode = config.mode === "widget";
+if (isWidgetMode) {
+  const initialQuery = args[1] || "";
+  await runWidget(initialQuery);
   process.exit(0);
 }
 

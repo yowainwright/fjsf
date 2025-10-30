@@ -5,7 +5,8 @@ export type AppMode =
   | "exec"
   | "help"
   | "quit"
-  | "init";
+  | "init"
+  | "widget";
 
 export interface ModeConfig {
   mode: AppMode;
@@ -76,6 +77,11 @@ export const parseCliArgs = (args: string[]): ModeConfig => {
   const isInitMode = command === "init";
   if (isInitMode) {
     return Object.assign({}, { mode: "init" as const });
+  }
+
+  const isWidgetMode = command === "--widget";
+  if (isWidgetMode) {
+    return Object.assign({}, { mode: "widget" as const });
   }
 
   const isFindMode = command === "find";

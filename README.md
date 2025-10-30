@@ -12,6 +12,16 @@ A zero-dependency CLI tool for fuzzy searching and executing scripts within json
 
 <img src="https://github.com/user-attachments/assets/775d89a7-fc00-46eb-a1f6-c518a59d27a2" width=500 />
 
+## Why fjsf?
+
+**Stop typing full script names.** Run `fjsf init` once, then just type `npm run t<TAB>` and get an interactive tooltip with all your scripts. That's it. No more:
+- Typing `npm run test:unit:watch:verbose`
+- Opening `package.json` to remember script names
+- Scrolling through `npm run` help text
+- Context switching between editor and terminal
+
+Type less. Run faster. Stay in flow.
+
 ## Architecture
 
 <p align="center">You start here. <br/> Lost. In a sea of monorepo workspaces trying to remember the script you need,<br />you type <code>fjsf</code> and...</p>
@@ -52,6 +62,7 @@ graph TD
 
 ## Features
 
+- **Shell Integration**: Interactive tooltip when you type `npm run <TAB>` - fuzzy search scripts without leaving your terminal
 - **Scripts Mode**: Fuzzy search and execute npm scripts
 - **Find Mode**: Find all versions of a file across your repo and fuzzy search their JSON
 - **Path Mode**: Query a specific JSON file with fuzzy search
@@ -149,33 +160,41 @@ Note: Can only execute keys that start with `scripts.` and have string values.
 
 ### Shell Integration
 
-Setup shell integration for autocomplete and shortcuts:
+Never need to ask, "what was that npm script again?" again!
 
 ```bash
-fjsf init               # Setup autocomplete and fj alias
+fjsf init
 ```
 
-This command will:
-
-1. Detect your shell (bash, zsh, or fish)
-2. Add autocomplete for fjsf commands
-3. Add `fj` alias for quick access (if not already in use)
-4. Update your shell config file automatically
-
-After running, restart your shell or run:
+After setup, restart your shell. Now the magic happens:
 
 ```bash
-source ~/.zshrc          # zsh
-source ~/.bashrc         # bash
-source ~/.config/fish/config.fish  # fish
+npm run t<TAB>          # Interactive tooltip appears!
+                        # Shows: test, test:watch, test:e2e, typecheck...
+                        # Arrow keys to navigate, Enter to run
+
+pnpm run bui<TAB>       # Shows: build, build:prod, build:dev...
+yarn run d<TAB>         # Shows: dev, deploy, docs...
+bun run li<TAB>         # Shows: lint, lint:fix...
 ```
 
-Then you can use:
+**How it works:**
+- Type `npm run` (or pnpm/yarn/bun) followed by partial script name
+- Press **Tab** to trigger the interactive tooltip
+- The tooltip appears right at your cursor showing fuzzy-matched scripts
+- Your partial input becomes the fuzzy search query
+- Arrow up/down to navigate matches
+- Press Enter to execute the selected script
+- The same fjsf interface you know, but inline in your terminal
 
-```bash
-fj                      # Instead of fjsf
-fj find package.json    # Autocomplete for commands
-```
+**Why this is awesome:**
+- No context switching - stays in your terminal flow
+- Fuzzy matching means `npm run t` finds `test`, `typecheck`, `test:watch`
+- Works across all package managers (npm, pnpm, yarn, bun)
+- Shows workspace info in monorepos
+- Zero dependencies, instant performance
+
+Supports: bash, zsh, fish
 
 ### Help & Quit
 

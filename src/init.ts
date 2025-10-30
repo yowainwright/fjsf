@@ -1,6 +1,6 @@
 import { stdout } from "process";
 import { homedir } from "os";
-import { existsSync, readFileSync, appendFileSync } from "fs";
+import { existsSync, readFileSync, appendFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { colors, colorize } from "./terminal.ts";
 import { spawnSync } from "child_process";
@@ -44,10 +44,81 @@ const checkIfAliasExists = (aliasName: string): boolean => {
   return result.status === 0;
 };
 
+const getPackageManagerInterceptors = (shell: string): string => {
+  if (shell === "zsh") {
+    return `
+_fjsf_widget() {
+  local line="$BUFFER"
+
+  if [[ "$line" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run[[:space:]](.*)$ ]]; then
+    local pm=\${match[1]}
+    local query=\${match[2]}
+    local script
+    script=$(fjsf --widget "$query")
+
+    if [ -n "$script" ]; then
+      BUFFER="$pm run $script"
+      CURSOR=$#BUFFER
+      zle accept-line
+    fi
+  fi
+}
+
+zle -N _fjsf_widget
+bindkey '^I' _fjsf_widget
+`;
+  }
+
+  if (shell === "bash") {
+    return `
+_fjsf_widget() {
+  local line="$READLINE_LINE"
+
+  if [[ "$line" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run[[:space:]](.*)$ ]]; then
+    local pm=\${BASH_REMATCH[1]}
+    local query=\${BASH_REMATCH[2]}
+    local script
+    script=$(fjsf --widget "$query")
+
+    if [ -n "$script" ]; then
+      READLINE_LINE="$pm run $script"
+      READLINE_POINT=\${#READLINE_LINE}
+    fi
+  fi
+}
+
+bind -x '"\C-i": _fjsf_widget'
+`;
+  }
+
+  if (shell === "fish") {
+    return `
+function _fjsf_widget
+  set -l line (commandline)
+
+  if string match -qr '^(npm|pnpm|yarn|bun)\s+run\s*(.*)$' -- $line
+    set -l parts (string match -r '^(npm|pnpm|yarn|bun)\s+run\s*(.*)$' -- $line)
+    set -l pm $parts[2]
+    set -l query $parts[3]
+    set -l script (fjsf --widget "$query")
+
+    if test -n "$script"
+      commandline -r "$pm run $script"
+      commandline -f execute
+    end
+  end
+end
+
+bind \t _fjsf_widget
+`;
+  }
+
+  return "";
+};
+
 const getAutocompleteScript = (shell: string): string => {
   if (shell === "zsh" || shell === "bash") {
     return `
-# fjsf shell completion
 _fjsf_completions() {
   local cur="\${COMP_WORDS[COMP_CWORD]}"
   local commands="find f path p exec e help h quit q init"
@@ -63,7 +134,6 @@ complete -F _fjsf_completions fjsf
 
   if (shell === "fish") {
     return `
-# fjsf shell completion
 complete -c fjsf -f
 complete -c fjsf -n "__fish_use_subcommand" -a "find" -d "Find all versions of file"
 complete -c fjsf -n "__fish_use_subcommand" -a "f" -d "Find (short)"
@@ -78,6 +148,41 @@ complete -c fjsf -n "__fish_use_subcommand" -a "init" -d "Setup shell integratio
   }
 
   return "";
+};
+
+const removeOldFjsfConfig = (configFile: string): void => {
+  if (!existsSync(configFile)) {
+    return;
+  }
+
+  const fileContent = readFileSync(configFile, "utf-8");
+  const lines = fileContent.split("\n");
+  const filteredLines: string[] = [];
+  let skipUntilBlank = false;
+
+  for (const line of lines) {
+    if (line.includes("# fjsf")) {
+      skipUntilBlank = true;
+      continue;
+    }
+
+    if (skipUntilBlank) {
+      if (line.trim() === "") {
+        skipUntilBlank = false;
+      }
+      continue;
+    }
+
+    filteredLines.push(line);
+  }
+
+  const newContent = filteredLines.join("\n");
+  if (newContent !== fileContent) {
+    writeFileSync(configFile, newContent);
+    stdout.write(
+      colorize("\n✓ Removed old fjsf configuration\n", colors.dim),
+    );
+  }
 };
 
 const addToShellConfig = (
@@ -164,9 +269,20 @@ export const runInit = (): void => {
 
   stdout.write(colorize(`Config file: ${configFile}\n\n`, colors.dim));
 
+  removeOldFjsfConfig(configFile);
+
+  const interceptorScript = getPackageManagerInterceptors(shell);
+  if (interceptorScript) {
+    addToShellConfig(
+      configFile,
+      interceptorScript,
+      "# fjsf interceptors",
+    );
+  }
+
   const autocompleteScript = getAutocompleteScript(shell);
   if (autocompleteScript) {
-    addToShellConfig(configFile, autocompleteScript, "# fjsf shell completion");
+    addToShellConfig(configFile, autocompleteScript, "# fjsf completion");
   }
 
   const fjExists = checkIfAliasExists("fj");

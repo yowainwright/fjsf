@@ -70,6 +70,11 @@ describe("parseCliArgs", () => {
     expect(config.mode).toBe("init");
   });
 
+  it("parses widget mode", () => {
+    const config = parseCliArgs(["--widget"]);
+    expect(config.mode).toBe("widget");
+  });
+
   it("parses .json file as scripts mode with specific file", () => {
     const config = parseCliArgs(["./package.json"]);
     expect(config.mode).toBe("scripts");
