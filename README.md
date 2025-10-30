@@ -44,7 +44,7 @@ graph TD
     T --> U[Add Alias]
 ```
 
-<p align=center>You end here.<br />Just as lonely as before.<br />But you executed that npm script you needed licket-split!</p>
+<p align=center>You end here.<br />Just as lonely as before.<br />But you executed that npm script you needed lickety-split!</p>
 
 ## Features
 
