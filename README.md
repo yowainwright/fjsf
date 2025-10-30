@@ -1,6 +1,50 @@
-# fjsf (Fuzzy JSON Search & Filter)
+# fjsf
 
-A zero-dependency CLI tool for fuzzy searching and executing npm scripts, exploring package.json fields with dot notation, and querying any JSON config files across monorepos and regular projects.
+> ### Fuzzy JSON Search & Filter
+
+A zero-dependency CLI tool for fuzzy searching and executing scripts within json. This is especially useful for exploring `package.json` fields with dot notation, and querying any JSON config files across monorepos and regular projects.
+
+### Traverse. Search. Execute. Fuzzy search filter your JSON files in style. 🤘
+
+<img src="https://github.com/user-attachments/assets/775d89a7-fc00-46eb-a1f6-c518a59d27a2" width=500 />
+
+## Architecture
+
+<p align="center">You start here. <br/> Lost. In a sea of monorepo workspaces trying to remember the script you need,<br />you type <code>fjsf</code> and...</p>
+
+```mermaid
+graph TD
+    A[CLI Entry] --> B{Parse Mode}
+    B -->|scripts| C[Scripts Mode]
+    B -->|find| D[Find Mode]
+    B -->|path| E[Path Mode]
+    B -->|exec| F[Exec Mode]
+    B -->|init| G[Shell Integration]
+    B -->|help/quit| H[Exit]
+
+    C --> I[Discover package.json]
+    I --> J[Extract Scripts]
+    J --> K[Fuzzy Search UI]
+    K --> L[Execute Script]
+
+    D --> M[Find All Files]
+    M --> N[Flatten JSON]
+    N --> O[Cache with mtime]
+    O --> K
+
+    E --> P[Load Single File]
+    P --> N
+
+    F --> Q[Read JSON]
+    Q --> R[Validate Key]
+    R --> L
+
+    G --> S[Detect Shell]
+    S --> T[Add Autocomplete]
+    T --> U[Add Alias]
+```
+
+<p align=center>You end here.<br />Just as lonely as before.<br />But you executed that npm script you needed licket-split!</p>
 
 ## Features
 
@@ -14,37 +58,6 @@ A zero-dependency CLI tool for fuzzy searching and executing npm scripts, explor
 - Zero dependencies - built with Bun
 - Interactive terminal UI with keyboard navigation
 - Shows which workspace and file each entry belongs to
-
-## Installation
-
-### npm
-
-```bash
-npm install -g fjsf
-```
-
-### Homebrew
-
-```bash
-brew tap yowainwright/fjsf
-brew install fjsf
-```
-
-### Binary
-
-Download the latest binary for your platform from the [releases page](https://github.com/yowainwright/fjsf/releases):
-
-- Linux: `fjsf-linux-x64`
-- macOS (Intel): `fjsf-darwin-x64`
-- macOS (ARM): `fjsf-darwin-arm64`
-- Windows: `fjsf-windows-x64.exe`
-
-Make the binary executable and move it to your PATH:
-
-```bash
-chmod +x fjsf-*
-sudo mv fjsf-* /usr/local/bin/fjsf
-```
 
 ## Usage
 
@@ -176,7 +189,7 @@ fjsf q                  # Short form
 - `Enter` - Execute selected script (scripts mode only)
 - `q`, `Esc` or `Ctrl+C` - Exit
 
-## How It Works
+## Modes
 
 **Scripts Mode:**
 
@@ -201,63 +214,35 @@ fjsf q                  # Short form
 3. Validates the key is a script (starts with `scripts.`)
 4. Executes the script with the appropriate package manager
 
-## Project Structure
+## Installation
 
-```
-src/
-├── cli.ts              # Entry point
-├── app.ts              # Scripts mode application
-├── modes.ts            # Mode detection and configuration
-├── types.ts            # TypeScript types
-├── discover.ts         # Package.json discovery (scripts)
-├── cache.ts            # JSON file caching with mtime validation
-├── fuzzy.ts            # Fuzzy search algorithm
-├── search.ts           # Search state management
-├── state.ts            # Application state
-├── renderer.ts         # Scripts mode UI rendering
-├── input.ts            # Keyboard input handling
-├── executor.ts         # Script execution
-├── terminal.ts         # Terminal utilities
-├── package-manager.ts  # Package manager detection
-└── json/
-    ├── app.ts          # JSON explorer mode application
-    ├── discover.ts     # JSON discovery and flattening
-    ├── entry.ts        # JSON entry types and flattening logic
-    └── renderer.ts     # JSON mode UI rendering
+### npm
+
+```bash
+bun install -g fjsf
 ```
 
-## Architecture
+### Homebrew
 
-```mermaid
-graph TD
-    A[CLI Entry] --> B{Parse Mode}
-    B -->|scripts| C[Scripts Mode]
-    B -->|find| D[Find Mode]
-    B -->|path| E[Path Mode]
-    B -->|exec| F[Exec Mode]
-    B -->|init| G[Shell Integration]
-    B -->|help/quit| H[Exit]
+```bash
+brew tap yowainwright/fjsf
+brew install fjsf
+```
 
-    C --> I[Discover package.json]
-    I --> J[Extract Scripts]
-    J --> K[Fuzzy Search UI]
-    K --> L[Execute Script]
+### Binary
 
-    D --> M[Find All Files]
-    M --> N[Flatten JSON]
-    N --> O[Cache with mtime]
-    O --> K
+Download the latest binary for your platform from the [releases page](https://github.com/yowainwright/fjsf/releases):
 
-    E --> P[Load Single File]
-    P --> N
+- Linux: `fjsf-linux-x64`
+- macOS (Intel): `fjsf-darwin-x64`
+- macOS (ARM): `fjsf-darwin-arm64`
+- Windows: `fjsf-windows-x64.exe`
 
-    F --> Q[Read JSON]
-    Q --> R[Validate Key]
-    R --> L
+Make the binary executable and move it to your PATH:
 
-    G --> S[Detect Shell]
-    S --> T[Add Autocomplete]
-    T --> U[Add Alias]
+```bash
+chmod +x fjsf-*
+sudo mv fjsf-* /usr/local/bin/fjsf
 ```
 
 ## License
