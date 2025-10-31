@@ -51,6 +51,7 @@ _fjsf_widget() {
   if [[ "$BUFFER" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run([[:space:]](.*))?$ ]]; then
     local pm=\${match[1]}
     local query=\${match[3]:-""}
+    query=\${query%;*}
     local script
     script=$(fjsf --widget "$query")
 
@@ -65,7 +66,7 @@ _fjsf_widget() {
 }
 
 zle -N _fjsf_widget
-bindkey ';' _fjsf_widget
+bindkey '^I' _fjsf_widget
 `;
   }
 
@@ -90,7 +91,7 @@ _fjsf_complete() {
   complete -p &>/dev/null && return 124
 }
 
-bind -x '";": _fjsf_complete'
+bind -x '"\\C-i": _fjsf_complete'
 `;
   }
 
@@ -117,7 +118,7 @@ function _fjsf_widget
   end
 end
 
-bind ';' _fjsf_widget
+bind \t _fjsf_widget
 `;
   }
 
