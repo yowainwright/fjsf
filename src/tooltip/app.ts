@@ -120,7 +120,7 @@ export const runWidget = async (initialQuery: string): Promise<void> => {
 
   try {
     await runEventLoop(state);
-  } catch (error) {
+  } catch {
     cleanup();
     exitApp();
   }
