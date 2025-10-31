@@ -199,6 +199,33 @@ bun run li<TAB>         # Shows: lint, lint:fix...
 
 Supports: bash, zsh, fish
 
+**Customizing the key binding:**
+
+If Tab conflicts with other completions (like bun's native completions), you can change the key binding. After running `fjsf init`, edit your shell config:
+
+**Zsh** (`~/.zshrc`):
+
+```bash
+bindkey '^I' _fjsf_widget    # Remove this line (Tab)
+bindkey '^ ' _fjsf_widget    # Add this (Ctrl+Space)
+```
+
+**Bash** (`~/.bashrc`):
+
+```bash
+bind -x '"\\C-i": _fjsf_complete'    # Remove this line (Tab)
+bind -x '"\\C- ": _fjsf_complete'    # Add this (Ctrl+Space)
+```
+
+**Fish** (`~/.config/fish/config.fish`):
+
+```bash
+bind \t _fjsf_widget     # Remove this line (Tab)
+bind \c\  _fjsf_widget   # Add this (Ctrl+Space)
+```
+
+Common key bindings: `^I`/`\t` (Tab), `^ `/`\c\ ` (Ctrl+Space), `^F`/`\cf` (Ctrl+F), `^O`/`\co` (Ctrl+O)
+
 ### Help & Quit
 
 ```bash

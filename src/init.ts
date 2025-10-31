@@ -61,6 +61,9 @@ _fjsf_widget() {
       CURSOR=$#BUFFER
       zle accept-line
     fi
+    return 0
+  else
+    zle expand-or-complete
   fi
 }
 
@@ -71,7 +74,7 @@ bindkey '^I' _fjsf_widget
 
   if (shell === "bash") {
     return `
-_fjsf_widget() {
+_fjsf_complete() {
   local line="$READLINE_LINE"
 
   if [[ "$line" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run[[:space:]](.*)$ ]]; then
@@ -83,11 +86,14 @@ _fjsf_widget() {
     if [ -n "$script" ]; then
       READLINE_LINE="$pm run $script"
       READLINE_POINT=\${#READLINE_LINE}
+      return
     fi
   fi
+
+  complete -p &>/dev/null && return 124
 }
 
-bind -x '"\\C-i": _fjsf_widget'
+bind -x '"\\C-i": _fjsf_complete'
 `;
   }
 
@@ -106,6 +112,8 @@ function _fjsf_widget
       commandline -r "$pm run $script"
       commandline -f execute
     end
+  else
+    commandline -f complete
   end
 end
 
