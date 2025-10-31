@@ -170,19 +170,20 @@ fjsf init
 After setup, restart your shell. Now the magic happens:
 
 ```bash
-npm run t<TAB>          # Interactive tooltip appears!
-                        # Shows: test, test:watch, test:e2e, typecheck...
-                        # Arrow keys to navigate, Enter to run
+npm run →           # Interactive tooltip appears!
+                    # Shows: test, build, dev, lint...
+                    # Type to filter, arrow keys to navigate, Enter to run
 
-pnpm run bui<TAB>       # Shows: build, build:prod, build:dev...
-yarn run d<TAB>         # Shows: dev, deploy, docs...
-bun run li<TAB>         # Shows: lint, lint:fix...
+npm run t→          # Shows: test, test:watch, typecheck...
+pnpm run bui→       # Shows: build, build:prod, build:dev...
+yarn run d→         # Shows: dev, deploy, docs...
+bun run li→         # Shows: lint, lint:fix...
 ```
 
 **How it works:**
 
-- Type `npm run` (or pnpm/yarn/bun) followed by partial script name
-- Press **Tab** to trigger the interactive tooltip
+- Type `npm run` (or pnpm/yarn/bun) followed by optional partial script name
+- Press **Right Arrow (→)** to trigger the interactive tooltip
 - The tooltip appears right at your cursor showing fuzzy-matched scripts
 - Your partial input becomes the fuzzy search query
 - Arrow up/down to navigate matches
@@ -201,30 +202,30 @@ Supports: bash, zsh, fish
 
 **Customizing the key binding:**
 
-If Tab conflicts with other completions (like bun's native completions), you can change the key binding. After running `fjsf init`, edit your shell config:
+Don't like Right Arrow? Change it! After running `fjsf init`, edit your shell config:
 
 **Zsh** (`~/.zshrc`):
 
 ```bash
-bindkey '^I' _fjsf_widget    # Remove this line (Tab)
-bindkey '^ ' _fjsf_widget    # Add this (Ctrl+Space)
+bindkey '\e[C' _fjsf_widget    # Remove this line (Right Arrow)
+bindkey '^ ' _fjsf_widget      # Add this (Ctrl+Space)
 ```
 
 **Bash** (`~/.bashrc`):
 
 ```bash
-bind -x '"\\C-i": _fjsf_complete'    # Remove this line (Tab)
+bind -x '"\\e[C": _fjsf_complete'    # Remove this line (Right Arrow)
 bind -x '"\\C- ": _fjsf_complete'    # Add this (Ctrl+Space)
 ```
 
 **Fish** (`~/.config/fish/config.fish`):
 
 ```bash
-bind \t _fjsf_widget     # Remove this line (Tab)
-bind \c\  _fjsf_widget   # Add this (Ctrl+Space)
+bind \e\[C _fjsf_widget    # Remove this line (Right Arrow)
+bind \c\  _fjsf_widget     # Add this (Ctrl+Space)
 ```
 
-Common key bindings: `^I`/`\t` (Tab), `^ `/`\c\ ` (Ctrl+Space), `^F`/`\cf` (Ctrl+F), `^O`/`\co` (Ctrl+O)
+Common key bindings: `\e[C` (Right Arrow), `^ `/`\c\ ` (Ctrl+Space), `^I`/`\t` (Tab), `^F`/`\cf` (Ctrl+F)
 
 ### Help & Quit
 
