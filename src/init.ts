@@ -48,11 +48,9 @@ const getPackageManagerInterceptors = (shell: string): string => {
   if (shell === "zsh") {
     return `
 _fjsf_widget() {
-  local line="$BUFFER"
-
-  if [[ "$line" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run[[:space:]](.*)$ ]]; then
+  if [[ "$BUFFER" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run([[:space:]](.*))?$ ]]; then
     local pm=\${match[1]}
-    local query=\${match[2]}
+    local query=\${match[3]:-""}
     local script
     script=$(fjsf --widget "$query")
 
@@ -61,14 +59,13 @@ _fjsf_widget() {
       CURSOR=$#BUFFER
       zle accept-line
     fi
-    return 0
   else
     zle expand-or-complete
   fi
 }
 
 zle -N _fjsf_widget
-bindkey '^I' _fjsf_widget
+bindkey '\\e[C' _fjsf_widget
 `;
   }
 
@@ -77,9 +74,9 @@ bindkey '^I' _fjsf_widget
 _fjsf_complete() {
   local line="$READLINE_LINE"
 
-  if [[ "$line" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run[[:space:]](.*)$ ]]; then
+  if [[ "$line" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run([[:space:]](.*))?$ ]]; then
     local pm=\${BASH_REMATCH[1]}
-    local query=\${BASH_REMATCH[2]}
+    local query=\${BASH_REMATCH[3]:-""}
     local script
     script=$(fjsf --widget "$query")
 
@@ -93,7 +90,7 @@ _fjsf_complete() {
   complete -p &>/dev/null && return 124
 }
 
-bind -x '"\\C-i": _fjsf_complete'
+bind -x '"\\e[C": _fjsf_complete'
 `;
   }
 
@@ -102,10 +99,13 @@ bind -x '"\\C-i": _fjsf_complete'
 function _fjsf_widget
   set -l line (commandline)
 
-  if string match -qr '^(npm|pnpm|yarn|bun)\\s+run\\s*(.*)$' -- $line
-    set -l parts (string match -r '^(npm|pnpm|yarn|bun)\\s+run\\s*(.*)$' -- $line)
+  if string match -qr '^(npm|pnpm|yarn|bun)\\s+run(\\s.*)?$' -- $line
+    set -l parts (string match -r '^(npm|pnpm|yarn|bun)\\s+run(\\s(.*))?$' -- $line)
     set -l pm $parts[2]
-    set -l query $parts[3]
+    set -l query $parts[4]
+    if test -z "$query"
+      set query ""
+    end
     set -l script (fjsf --widget "$query")
 
     if test -n "$script"
@@ -117,7 +117,7 @@ function _fjsf_widget
   end
 end
 
-bind \t _fjsf_widget
+bind \\e\\[C _fjsf_widget
 `;
   }
 
