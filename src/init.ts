@@ -65,7 +65,7 @@ _fjsf_widget() {
 }
 
 zle -N _fjsf_widget
-bindkey '\\e[C' _fjsf_widget
+bindkey '?' _fjsf_widget
 `;
   }
 
@@ -90,7 +90,7 @@ _fjsf_complete() {
   complete -p &>/dev/null && return 124
 }
 
-bind -x '"\\e[C": _fjsf_complete'
+bind -x '"?": _fjsf_complete'
 `;
   }
 
@@ -117,7 +117,7 @@ function _fjsf_widget
   end
 end
 
-bind \\e\\[C _fjsf_widget
+bind '?' _fjsf_widget
 `;
   }
 

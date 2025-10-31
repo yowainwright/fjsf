@@ -63,5 +63,7 @@
     "npm": {
       "publish": true
     }
-  }
+  },
+  "module": "index.ts",
+  "private": true
 }
