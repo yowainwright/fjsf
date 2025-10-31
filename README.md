@@ -14,7 +14,7 @@ A zero-dependency CLI tool for fuzzy searching and executing scripts within json
 
 ## Why fjsf?
 
-**Stop typing full script names.** Run `fjsf init` once, then just type `npm run ?` and get an interactive tooltip with all your scripts. That's it. No more:
+**Stop typing full script names.** Run `fjsf init` once, then just type `npm run;` and get an interactive tooltip with all your scripts. That's it. No more:
 
 - Typing `npm run test:unit:watch:verbose`
 - Opening `package.json` to remember script names
@@ -170,20 +170,20 @@ fjsf init
 After setup, restart your shell. Now the magic happens:
 
 ```bash
-npm run ?           # Interactive tooltip appears!
+npm run;            # Interactive tooltip appears!
                     # Shows: test, build, dev, lint...
                     # Type to filter, arrow keys to navigate, Enter to run
 
-npm run t?          # Shows: test, test:watch, typecheck...
-pnpm run bui?       # Shows: build, build:prod, build:dev...
-yarn run d?         # Shows: dev, deploy, docs...
-bun run li?         # Shows: lint, lint:fix...
+npm run t;          # Shows: test, test:watch, typecheck...
+pnpm run bui;       # Shows: build, build:prod, build:dev...
+yarn run d;         # Shows: dev, deploy, docs...
+bun run li;         # Shows: lint, lint:fix...
 ```
 
 **How it works:**
 
 - Type `npm run` (or pnpm/yarn/bun) followed by optional partial script name
-- Press **?** to trigger the interactive tooltip
+- Press **;** (semicolon) to trigger the interactive tooltip
 - The tooltip appears right at your cursor showing fuzzy-matched scripts
 - Your partial input becomes the fuzzy search query
 - Arrow up/down to navigate matches
@@ -202,30 +202,30 @@ Supports: bash, zsh, fish
 
 **Customizing the key binding:**
 
-Don't like `?` as the trigger? Change it! After running `fjsf init`, edit your shell config:
+Don't like `;` as the trigger? Change it! After running `fjsf init`, edit your shell config:
 
 **Zsh** (`~/.zshrc`):
 
 ```bash
-bindkey '?' _fjsf_widget       # Remove this line
-bindkey '^ ' _fjsf_widget      # Add this (Ctrl+Space)
+bindkey ';' _fjsf_widget       # Remove this line
+bindkey '^F' _fjsf_widget      # Add this (Ctrl+F)
 ```
 
 **Bash** (`~/.bashrc`):
 
 ```bash
-bind -x '"?": _fjsf_complete'           # Remove this line
-bind -x '"\\C- ": _fjsf_complete'       # Add this (Ctrl+Space)
+bind -x '";": _fjsf_complete'           # Remove this line
+bind -x '"\\C-f": _fjsf_complete'       # Add this (Ctrl+F)
 ```
 
 **Fish** (`~/.config/fish/config.fish`):
 
 ```bash
-bind '?' _fjsf_widget      # Remove this line
-bind \c\  _fjsf_widget     # Add this (Ctrl+Space)
+bind ';' _fjsf_widget      # Remove this line
+bind \cf _fjsf_widget      # Add this (Ctrl+F)
 ```
 
-Common key bindings: `?` (question mark), `^ `/`\c\ ` (Ctrl+Space), `^I`/`\t` (Tab), `^F`/`\cf` (Ctrl+F)
+Common key bindings: `;` (semicolon), `^F`/`\cf` (Ctrl+F), `^G`/`\cg` (Ctrl+G)
 
 ### Help & Quit
 
