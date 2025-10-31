@@ -17,7 +17,11 @@ describe("init shell integration", () => {
   });
 
   it("shell config markers are unique", () => {
-    const markers = ["# fjsf interceptors", "# fjsf completion", "# fjsf alias"];
+    const markers = [
+      "# fjsf interceptors",
+      "# fjsf completion",
+      "# fjsf alias",
+    ];
     const uniqueMarkers = new Set(markers);
     expect(uniqueMarkers.size).toBe(markers.length);
   });
