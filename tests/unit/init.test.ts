@@ -17,14 +17,44 @@ describe("init shell integration", () => {
     expect(hasAtLeastOne).toBe(true);
   });
 
-  it("shell config markers are unique", () => {
-    const markers = [
-      "# fjsf interceptors",
-      "# fjsf completion",
-      "# fjsf alias",
-    ];
-    const uniqueMarkers = new Set(markers);
-    expect(uniqueMarkers.size).toBe(markers.length);
+  it("package manager interceptors handle all shells", () => {
+    const { getPackageManagerInterceptors } = require("../../src/init.ts");
+
+    const zshScript = getPackageManagerInterceptors("zsh");
+    expect(zshScript).toContain("_fjsf_widget");
+    expect(zshScript.length).toBeGreaterThan(0);
+
+    const bashScript = getPackageManagerInterceptors("bash");
+    expect(bashScript).toContain("_fjsf_complete");
+    expect(bashScript.length).toBeGreaterThan(0);
+
+    const fishScript = getPackageManagerInterceptors("fish");
+    expect(fishScript).toContain("_fjsf_widget");
+    expect(fishScript.length).toBeGreaterThan(0);
+
+    const unknownScript = getPackageManagerInterceptors("unknown");
+    expect(unknownScript).toBe("");
+  });
+
+  it("autocomplete scripts handle all shells", () => {
+    const { getAutocompleteScript } = require("../../src/init.ts");
+
+    const zshScript = getAutocompleteScript("zsh");
+    expect(zshScript).toContain("_fjsf_completions");
+    expect(zshScript).toContain("compdef");
+    expect(zshScript.length).toBeGreaterThan(0);
+
+    const bashScript = getAutocompleteScript("bash");
+    expect(bashScript).toContain("_fjsf_completions");
+    expect(bashScript).toContain("complete -F");
+    expect(bashScript.length).toBeGreaterThan(0);
+
+    const fishScript = getAutocompleteScript("fish");
+    expect(fishScript).toContain("complete -c fjsf");
+    expect(fishScript.length).toBeGreaterThan(0);
+
+    const unknownScript = getAutocompleteScript("unknown");
+    expect(unknownScript).toBe("");
   });
 });
 
@@ -42,6 +72,66 @@ describe("init version updates", () => {
       content.includes("# fjsf") || content.includes("_fjsf_widget");
 
     expect(typeof hasFjsfConfig).toBe("boolean");
+  });
+});
+
+const shellIntegrationPatterns = {
+  zsh: [
+    "_fjsf_widget",
+    "_fjsf_ensure_binding",
+    "bindkey '^I' _fjsf_widget",
+    "add-zsh-hook precmd _fjsf_ensure_binding",
+    'widgets[^I]',
+    "_fjsf_completions",
+    "compdef _fjsf_completions fjsf"
+  ],
+  bash: [
+    "_fjsf_complete",
+    "_fjsf_ensure_binding",
+    "bind -x",
+    "PROMPT_COMMAND",
+    "_fjsf_completions",
+    "complete -F _fjsf_completions fjsf"
+  ],
+  fish: [
+    "_fjsf_widget",
+    "commandline",
+    "complete -c fjsf"
+  ]
+};
+
+describe("shell integration content", () => {
+  it("zsh integration includes binding persistence", () => {
+    const { getPackageManagerInterceptors, getAutocompleteScript } = require("../../src/init.ts");
+    const interceptors = getPackageManagerInterceptors("zsh");
+    const completions = getAutocompleteScript("zsh");
+    const fullContent = interceptors + completions;
+
+    shellIntegrationPatterns.zsh.forEach(pattern => {
+      expect(fullContent).toContain(pattern);
+    });
+  });
+
+  it("bash integration includes binding persistence", () => {
+    const { getPackageManagerInterceptors, getAutocompleteScript } = require("../../src/init.ts");
+    const interceptors = getPackageManagerInterceptors("bash");
+    const completions = getAutocompleteScript("bash");
+    const fullContent = interceptors + completions;
+
+    shellIntegrationPatterns.bash.forEach(pattern => {
+      expect(fullContent).toContain(pattern);
+    });
+  });
+
+  it("fish integration includes widget and completions", () => {
+    const { getPackageManagerInterceptors, getAutocompleteScript } = require("../../src/init.ts");
+    const interceptors = getPackageManagerInterceptors("fish");
+    const completions = getAutocompleteScript("fish");
+    const fullContent = interceptors + completions;
+
+    shellIntegrationPatterns.fish.forEach(pattern => {
+      expect(fullContent).toContain(pattern);
+    });
   });
 });
 

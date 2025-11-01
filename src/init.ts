@@ -84,7 +84,7 @@ const checkIfAliasExists = (aliasName: string): boolean => {
   return result.status === 0;
 };
 
-const getPackageManagerInterceptors = (shell: string): string => {
+export const getPackageManagerInterceptors = (shell: string): string => {
   if (shell === "zsh") {
     return `
 _fjsf_widget() {
@@ -194,7 +194,7 @@ bind \t _fjsf_widget
   return "";
 };
 
-const getAutocompleteScript = (shell: string): string => {
+export const getAutocompleteScript = (shell: string): string => {
   if (shell === "zsh") {
     return `
 _fjsf_completions() {
