@@ -81,9 +81,9 @@ const shellIntegrationPatterns = {
     "_fjsf_ensure_binding",
     "bindkey '^I' _fjsf_widget",
     "add-zsh-hook precmd _fjsf_ensure_binding",
-    'widgets[^I]',
+    "widgets[^I]",
     "_fjsf_completions",
-    "compdef _fjsf_completions fjsf"
+    "compdef _fjsf_completions fjsf",
   ],
   bash: [
     "_fjsf_complete",
@@ -91,45 +91,50 @@ const shellIntegrationPatterns = {
     "bind -x",
     "PROMPT_COMMAND",
     "_fjsf_completions",
-    "complete -F _fjsf_completions fjsf"
+    "complete -F _fjsf_completions fjsf",
   ],
-  fish: [
-    "_fjsf_widget",
-    "commandline",
-    "complete -c fjsf"
-  ]
+  fish: ["_fjsf_widget", "commandline", "complete -c fjsf"],
 };
 
 describe("shell integration content", () => {
   it("zsh integration includes binding persistence", () => {
-    const { getPackageManagerInterceptors, getAutocompleteScript } = require("../../src/init.ts");
+    const {
+      getPackageManagerInterceptors,
+      getAutocompleteScript,
+    } = require("../../src/init.ts");
     const interceptors = getPackageManagerInterceptors("zsh");
     const completions = getAutocompleteScript("zsh");
     const fullContent = interceptors + completions;
 
-    shellIntegrationPatterns.zsh.forEach(pattern => {
+    shellIntegrationPatterns.zsh.forEach((pattern) => {
       expect(fullContent).toContain(pattern);
     });
   });
 
   it("bash integration includes binding persistence", () => {
-    const { getPackageManagerInterceptors, getAutocompleteScript } = require("../../src/init.ts");
+    const {
+      getPackageManagerInterceptors,
+      getAutocompleteScript,
+    } = require("../../src/init.ts");
     const interceptors = getPackageManagerInterceptors("bash");
     const completions = getAutocompleteScript("bash");
     const fullContent = interceptors + completions;
 
-    shellIntegrationPatterns.bash.forEach(pattern => {
+    shellIntegrationPatterns.bash.forEach((pattern) => {
       expect(fullContent).toContain(pattern);
     });
   });
 
   it("fish integration includes widget and completions", () => {
-    const { getPackageManagerInterceptors, getAutocompleteScript } = require("../../src/init.ts");
+    const {
+      getPackageManagerInterceptors,
+      getAutocompleteScript,
+    } = require("../../src/init.ts");
     const interceptors = getPackageManagerInterceptors("fish");
     const completions = getAutocompleteScript("fish");
     const fullContent = interceptors + completions;
 
-    shellIntegrationPatterns.fish.forEach(pattern => {
+    shellIntegrationPatterns.fish.forEach((pattern) => {
       expect(fullContent).toContain(pattern);
     });
   });
