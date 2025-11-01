@@ -182,6 +182,8 @@ bun run li<TAB>     # Shows: lint, lint:fix...
 
 **How it works:**
 
+`fjsf init` creates a `~/.fjsf/` directory with shell-specific integration files and adds a single source line to your shell config (`.zshrc`, `.bashrc`, or `.config/fish/config.fish`).
+
 - Type `npm run` (or pnpm/yarn/bun) followed by optional partial script name
 - Press **Tab** to trigger the interactive tooltip
 - The tooltip appears right at your cursor showing fuzzy-matched scripts
@@ -189,6 +191,12 @@ bun run li<TAB>     # Shows: lint, lint:fix...
 - Arrow up/down to navigate matches
 - Press Enter to execute the selected script
 - The same fjsf interface you know, but inline in your terminal
+
+**Clean uninstall:**
+```bash
+rm -rf ~/.fjsf
+# Then remove the "# fjsf" and source line from your shell config
+```
 
 **Why this is awesome:**
 
@@ -202,27 +210,27 @@ Supports: bash, zsh, fish
 
 **Customizing the key binding:**
 
-If Tab conflicts with other completions (like bun's native completions), you can change the key binding. After running `fjsf init`, edit your shell config:
+If Tab conflicts with other completions (like bun's native completions), you can change the key binding. After running `fjsf init`, edit the integration file in `~/.fjsf/`:
 
-**Zsh** (`~/.zshrc`):
+**Zsh** (`~/.fjsf/init.zsh`):
 
 ```bash
-bindkey '^I' _fjsf_widget      # Remove this line (Tab)
-bindkey '^F' _fjsf_widget      # Add this (Ctrl+F)
+bindkey '^I' _fjsf_widget      # Change to your preferred key
+# Examples: '^F' (Ctrl+F), '^G' (Ctrl+G)
 ```
 
-**Bash** (`~/.bashrc`):
+**Bash** (`~/.fjsf/init.bash`):
 
 ```bash
-bind -x '"\\C-i": _fjsf_complete'       # Remove this line (Tab)
-bind -x '"\\C-f": _fjsf_complete'       # Add this (Ctrl+F)
+bind -x '"\\C-i": _fjsf_complete'   # Change to your preferred key
+# Examples: '"\\C-f"' (Ctrl+F), '"\\C-g"' (Ctrl+G)
 ```
 
-**Fish** (`~/.config/fish/config.fish`):
+**Fish** (`~/.fjsf/init.fish`):
 
 ```bash
-bind \t _fjsf_widget       # Remove this line (Tab)
-bind \cf _fjsf_widget      # Add this (Ctrl+F)
+bind \t _fjsf_widget      # Change to your preferred key
+# Examples: \cf (Ctrl+F), \cg (Ctrl+G)
 ```
 
 Common key bindings: `^I`/`\t` (Tab), `^F`/`\cf` (Ctrl+F), `^G`/`\cg` (Ctrl+G)
