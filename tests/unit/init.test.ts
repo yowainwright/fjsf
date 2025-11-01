@@ -5,6 +5,38 @@ import { join } from "path";
 import { tmpdir } from "os";
 
 describe("init shell integration", () => {
+  it("getFjsfDir creates and returns directory", () => {
+    const { getFjsfDir } = require("../../src/init.ts");
+    const fjsfDir = getFjsfDir();
+
+    expect(fjsfDir).toContain(".fjsf");
+    expect(existsSync(fjsfDir)).toBe(true);
+  });
+
+  it("detectShell identifies current shell", () => {
+    const { detectShell } = require("../../src/init.ts");
+    const shell = detectShell();
+
+    expect(["zsh", "bash", "fish", "unknown"]).toContain(shell);
+  });
+
+  it("getShellConfigFile returns correct paths for each shell", () => {
+    const { getShellConfigFile } = require("../../src/init.ts");
+    const home = homedir();
+
+    const zshConfig = getShellConfigFile("zsh");
+    expect([join(home, ".zshrc"), join(home, ".zprofile")]).toContain(zshConfig);
+
+    const bashConfig = getShellConfigFile("bash");
+    expect([join(home, ".bashrc"), join(home, ".bash_profile")]).toContain(bashConfig);
+
+    const fishConfig = getShellConfigFile("fish");
+    expect(fishConfig).toBe(join(home, ".config", "fish", "config.fish"));
+
+    const unknownConfig = getShellConfigFile("unknown");
+    expect(unknownConfig).toBe("");
+  });
+
   it("detects shell config files", () => {
     const home = homedir();
     const possibleConfigs = [
