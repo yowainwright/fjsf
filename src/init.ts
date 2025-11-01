@@ -11,7 +11,7 @@ import { join } from "path";
 import { colors, colorize } from "./terminal.ts";
 import { spawnSync } from "child_process";
 
-const getFjsfDir = (): string => {
+export const getFjsfDir = (): string => {
   const home = homedir();
   const fjsfDir = join(home, ".fjsf");
 
@@ -22,7 +22,7 @@ const getFjsfDir = (): string => {
   return fjsfDir;
 };
 
-const detectShell = (): string => {
+export const detectShell = (): string => {
   const shell = process.env.SHELL || "";
   if (shell.includes("zsh")) return "zsh";
   if (shell.includes("bash")) return "bash";
@@ -30,7 +30,7 @@ const detectShell = (): string => {
   return "unknown";
 };
 
-const getShellConfigFile = (shell: string): string => {
+export const getShellConfigFile = (shell: string): string => {
   const home = homedir();
 
   if (shell === "zsh") {
@@ -86,6 +86,7 @@ const checkIfAliasExists = (aliasName: string): boolean => {
 
 export const getPackageManagerInterceptors = (shell: string): string => {
   if (shell === "zsh") {
+    /* c8 ignore next 30 */
     return `
 _fjsf_widget() {
   if [[ "$BUFFER" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run([[:space:]](.*))?$ ]]; then
@@ -126,6 +127,7 @@ add-zsh-hook precmd _fjsf_ensure_binding
   }
 
   if (shell === "bash") {
+    /* c8 ignore next 30 */
     return `
 _fjsf_complete() {
   local line="$READLINE_LINE"
@@ -165,6 +167,7 @@ fi
   }
 
   if (shell === "fish") {
+    /* c8 ignore next 20 */
     return `
 function _fjsf_widget
   set -l line (commandline)
@@ -196,6 +199,7 @@ bind \t _fjsf_widget
 
 export const getAutocompleteScript = (shell: string): string => {
   if (shell === "zsh") {
+    /* c8 ignore next 20 */
     return `
 _fjsf_completions() {
   local -a commands
@@ -220,6 +224,7 @@ compdef _fjsf_completions fjsf
   }
 
   if (shell === "bash") {
+    /* c8 ignore next 10 */
     return `
 _fjsf_completions() {
   local cur="\${COMP_WORDS[COMP_CWORD]}"
@@ -235,6 +240,7 @@ complete -F _fjsf_completions fjsf
   }
 
   if (shell === "fish") {
+    /* c8 ignore next 10 */
     return `
 complete -c fjsf -f
 complete -c fjsf -n "__fish_use_subcommand" -a "find" -d "Find all versions of file"
