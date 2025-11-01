@@ -193,6 +193,7 @@ bun run li<TAB>     # Shows: lint, lint:fix...
 - The same fjsf interface you know, but inline in your terminal
 
 **Clean uninstall:**
+
 ```bash
 rm -rf ~/.fjsf
 # Then remove the "# fjsf" and source line from your shell config

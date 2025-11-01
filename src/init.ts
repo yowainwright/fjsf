@@ -1,6 +1,12 @@
 import { stdout } from "process";
 import { homedir } from "os";
-import { existsSync, readFileSync, appendFileSync, writeFileSync, mkdirSync } from "fs";
+import {
+  existsSync,
+  readFileSync,
+  appendFileSync,
+  writeFileSync,
+  mkdirSync,
+} from "fs";
 import { join } from "path";
 import { colors, colorize } from "./terminal.ts";
 import { spawnSync } from "child_process";
@@ -153,7 +159,7 @@ bind -x '"\\C-i": _fjsf_complete'
 
 # Re-bind before every prompt to maintain precedence over runtime completions
 if [[ ":$PROMPT_COMMAND:" != *":_fjsf_ensure_binding:"* ]]; then
-  PROMPT_COMMAND="_fjsf_ensure_binding\${PROMPT_COMMAND:+;\$PROMPT_COMMAND}"
+  PROMPT_COMMAND="_fjsf_ensure_binding\${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 fi
 `;
   }
@@ -266,7 +272,10 @@ export const removeOldFjsfConfig = (configFile: string): void => {
     }
 
     if (inFjsfSection) {
-      if (trimmed === "" || (trimmed.startsWith("#") && !trimmed.includes("fjsf"))) {
+      if (
+        trimmed === "" ||
+        (trimmed.startsWith("#") && !trimmed.includes("fjsf"))
+      ) {
         inFjsfSection = false;
       } else {
         continue;
@@ -308,7 +317,10 @@ const addSourceToShellConfig = (
   const fileContent = readFileSync(configFile, "utf-8");
   const sourceLine = `[ -f "${integrationFile}" ] && source "${integrationFile}"`;
 
-  if (fileContent.includes(integrationFile) || fileContent.includes("source") && fileContent.includes(".fjsf/init.")) {
+  if (
+    fileContent.includes(integrationFile) ||
+    (fileContent.includes("source") && fileContent.includes(".fjsf/init."))
+  ) {
     stdout.write(
       colorize(`\n✓ Already sourced in ${configFile}\n`, colors.green),
     );
@@ -317,7 +329,9 @@ const addSourceToShellConfig = (
 
   const entry = `\n# fjsf\n${sourceLine}\n`;
   appendFileSync(configFile, entry);
-  stdout.write(colorize(`\n✓ Added source line to ${configFile}\n`, colors.green));
+  stdout.write(
+    colorize(`\n✓ Added source line to ${configFile}\n`, colors.green),
+  );
 };
 
 const installGitHooks = (): void => {
