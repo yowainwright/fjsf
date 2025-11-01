@@ -1,9 +1,26 @@
 import { stdout } from "process";
 import { homedir } from "os";
-import { existsSync, readFileSync, appendFileSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  readFileSync,
+  appendFileSync,
+  writeFileSync,
+  mkdirSync,
+} from "fs";
 import { join } from "path";
 import { colors, colorize } from "./terminal.ts";
 import { spawnSync } from "child_process";
+
+const getFjsfDir = (): string => {
+  const home = homedir();
+  const fjsfDir = join(home, ".fjsf");
+
+  if (!existsSync(fjsfDir)) {
+    mkdirSync(fjsfDir, { recursive: true });
+  }
+
+  return fjsfDir;
+};
 
 const detectShell = (): string => {
   const shell = process.env.SHELL || "";
@@ -35,6 +52,29 @@ const getShellConfigFile = (shell: string): string => {
   return "";
 };
 
+const getShellIntegrationFile = (shell: string): string => {
+  const fjsfDir = getFjsfDir();
+  return join(fjsfDir, `init.${shell}`);
+};
+
+const writeShellIntegrationFile = (shell: string): string => {
+  const integrationFile = getShellIntegrationFile(shell);
+  const interceptorScript = getPackageManagerInterceptors(shell);
+  const autocompleteScript = getAutocompleteScript(shell);
+
+  const fjExists = checkIfAliasExists("fj");
+  const aliasScript = fjExists ? "" : `\n# fjsf alias\nalias fj='fjsf'\n`;
+
+  const content = `# fjsf shell integration
+${interceptorScript}
+${autocompleteScript}${aliasScript}`;
+
+  writeFileSync(integrationFile, content);
+  stdout.write(colorize(`\n✓ Created ${integrationFile}\n`, colors.green));
+
+  return integrationFile;
+};
+
 const checkIfAliasExists = (aliasName: string): boolean => {
   const result = spawnSync("type", [aliasName], {
     shell: true,
@@ -44,7 +84,7 @@ const checkIfAliasExists = (aliasName: string): boolean => {
   return result.status === 0;
 };
 
-const getPackageManagerInterceptors = (shell: string): string => {
+export const getPackageManagerInterceptors = (shell: string): string => {
   if (shell === "zsh") {
     return `
 _fjsf_widget() {
@@ -66,7 +106,22 @@ _fjsf_widget() {
 }
 
 zle -N _fjsf_widget
+
+# Ensure our binding persists even if other tools (like bun) try to override it
+_fjsf_ensure_binding() {
+  # Only re-bind if something else has taken over Tab
+  local current_widget="\${widgets[^I]}"
+  if [[ "$current_widget" != "user:_fjsf_widget" ]]; then
+    bindkey '^I' _fjsf_widget
+  fi
+}
+
+# Run once on load
 bindkey '^I' _fjsf_widget
+
+# Re-bind before every prompt to maintain precedence over runtime completions
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _fjsf_ensure_binding
 `;
   }
 
@@ -91,7 +146,21 @@ _fjsf_complete() {
   complete -p &>/dev/null && return 124
 }
 
+# Ensure our binding persists even if other tools (like bun) try to override it
+_fjsf_ensure_binding() {
+  # Only re-bind if our binding is not active (check if bind output contains our function)
+  if ! bind -X | grep -q '_fjsf_complete'; then
+    bind -x '"\\C-i": _fjsf_complete' 2>/dev/null
+  fi
+}
+
+# Run once on load
 bind -x '"\\C-i": _fjsf_complete'
+
+# Re-bind before every prompt to maintain precedence over runtime completions
+if [[ ":$PROMPT_COMMAND:" != *":_fjsf_ensure_binding:"* ]]; then
+  PROMPT_COMMAND="_fjsf_ensure_binding\${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+fi
 `;
   }
 
@@ -125,8 +194,32 @@ bind \t _fjsf_widget
   return "";
 };
 
-const getAutocompleteScript = (shell: string): string => {
-  if (shell === "zsh" || shell === "bash") {
+export const getAutocompleteScript = (shell: string): string => {
+  if (shell === "zsh") {
+    return `
+_fjsf_completions() {
+  local -a commands
+  commands=(
+    'find:Find all versions of file'
+    'f:Find (short)'
+    'path:Query specific file'
+    'p:Path (short)'
+    'exec:Execute key from file'
+    'e:Exec (short)'
+    'help:Show help'
+    'h:Help (short)'
+    'init:Setup shell integration'
+    'quit:Exit'
+    'q:Quit (short)'
+  )
+  _describe 'command' commands
+}
+
+compdef _fjsf_completions fjsf
+`;
+  }
+
+  if (shell === "bash") {
     return `
 _fjsf_completions() {
   local cur="\${COMP_WORDS[COMP_CWORD]}"
@@ -159,7 +252,7 @@ complete -c fjsf -n "__fish_use_subcommand" -a "init" -d "Setup shell integratio
   return "";
 };
 
-const removeOldFjsfConfig = (configFile: string): void => {
+export const removeOldFjsfConfig = (configFile: string): void => {
   if (!existsSync(configFile)) {
     return;
   }
@@ -167,18 +260,36 @@ const removeOldFjsfConfig = (configFile: string): void => {
   const fileContent = readFileSync(configFile, "utf-8");
   const lines = fileContent.split("\n");
   const filteredLines: string[] = [];
-  let skipUntilBlank = false;
+  let inFjsfSection = false;
 
-  for (const line of lines) {
-    if (line.includes("# fjsf")) {
-      skipUntilBlank = true;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith("# fjsf")) {
+      inFjsfSection = true;
       continue;
     }
 
-    if (skipUntilBlank) {
-      if (line.trim() === "") {
-        skipUntilBlank = false;
+    if (inFjsfSection) {
+      if (
+        trimmed === "" ||
+        (trimmed.startsWith("#") && !trimmed.includes("fjsf"))
+      ) {
+        inFjsfSection = false;
+      } else {
+        continue;
       }
+    }
+
+    if (
+      trimmed.includes("_fjsf") ||
+      trimmed.includes("fjsf --widget") ||
+      trimmed.includes(".fjsf/init.") ||
+      (trimmed.includes("source") && trimmed.includes(".fjsf")) ||
+      (trimmed.includes("alias") && trimmed.includes("fj=")) ||
+      (trimmed.includes("complete") && trimmed.includes("fjsf"))
+    ) {
       continue;
     }
 
@@ -192,10 +303,9 @@ const removeOldFjsfConfig = (configFile: string): void => {
   }
 };
 
-const addToShellConfig = (
+const addSourceToShellConfig = (
   configFile: string,
-  content: string,
-  marker: string,
+  integrationFile: string,
 ): void => {
   if (!existsSync(configFile)) {
     stdout.write(
@@ -205,17 +315,23 @@ const addToShellConfig = (
   }
 
   const fileContent = readFileSync(configFile, "utf-8");
+  const sourceLine = `[ -f "${integrationFile}" ] && source "${integrationFile}"`;
 
-  if (fileContent.includes(marker)) {
+  if (
+    fileContent.includes(integrationFile) ||
+    (fileContent.includes("source") && fileContent.includes(".fjsf/init."))
+  ) {
     stdout.write(
-      colorize(`\n✓ Already configured in ${configFile}\n`, colors.green),
+      colorize(`\n✓ Already sourced in ${configFile}\n`, colors.green),
     );
     return;
   }
 
-  const entry = `\n${marker}\n${content}\n`;
+  const entry = `\n# fjsf\n${sourceLine}\n`;
   appendFileSync(configFile, entry);
-  stdout.write(colorize(`\n✓ Added to ${configFile}\n`, colors.green));
+  stdout.write(
+    colorize(`\n✓ Added source line to ${configFile}\n`, colors.green),
+  );
 };
 
 const installGitHooks = (): void => {
@@ -274,22 +390,18 @@ export const runInit = (): void => {
     process.exit(1);
   }
 
-  stdout.write(colorize(`Config file: ${configFile}\n\n`, colors.dim));
+  stdout.write(colorize(`Config file: ${configFile}\n`, colors.dim));
+
+  const fjsfDir = getFjsfDir();
+  stdout.write(colorize(`fjsf directory: ${fjsfDir}\n\n`, colors.dim));
 
   removeOldFjsfConfig(configFile);
 
-  const interceptorScript = getPackageManagerInterceptors(shell);
-  if (interceptorScript) {
-    addToShellConfig(configFile, interceptorScript, "# fjsf interceptors");
-  }
+  const integrationFile = writeShellIntegrationFile(shell);
 
-  const autocompleteScript = getAutocompleteScript(shell);
-  if (autocompleteScript) {
-    addToShellConfig(configFile, autocompleteScript, "# fjsf completion");
-  }
+  addSourceToShellConfig(configFile, integrationFile);
 
   const fjExists = checkIfAliasExists("fj");
-
   if (fjExists) {
     stdout.write(
       colorize("\n⚠️  Alias 'fj' is already in use.\n", colors.yellow),
@@ -301,8 +413,6 @@ export const runInit = (): void => {
       ),
     );
   } else {
-    const aliasScript = `alias fj='fjsf'`;
-    addToShellConfig(configFile, aliasScript, "# fjsf alias");
     stdout.write(colorize("\n✓ Added 'fj' alias for fjsf\n", colors.green));
   }
 
