@@ -25,10 +25,14 @@ describe("init shell integration", () => {
     const home = homedir();
 
     const zshConfig = getShellConfigFile("zsh");
-    expect([join(home, ".zshrc"), join(home, ".zprofile")]).toContain(zshConfig);
+    expect([join(home, ".zshrc"), join(home, ".zprofile")]).toContain(
+      zshConfig,
+    );
 
     const bashConfig = getShellConfigFile("bash");
-    expect([join(home, ".bashrc"), join(home, ".bash_profile")]).toContain(bashConfig);
+    expect([join(home, ".bashrc"), join(home, ".bash_profile")]).toContain(
+      bashConfig,
+    );
 
     const fishConfig = getShellConfigFile("fish");
     expect(fishConfig).toBe(join(home, ".config", "fish", "config.fish"));
