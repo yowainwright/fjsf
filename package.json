@@ -64,6 +64,5 @@
       "publish": true
     }
   },
-  "module": "index.ts",
-  "private": true
+  "module": "index.ts"
 }
