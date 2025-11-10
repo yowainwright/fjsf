@@ -192,6 +192,16 @@ bun run li<TAB>     # Shows: lint, lint:fix...
 - Press Enter to execute the selected script
 - The same fjsf interface you know, but inline in your terminal
 
+**Using with fzf-tab:**
+
+If you use [fzf-tab](https://github.com/Aloxaf/fzf-tab) or other completion enhancers, use native mode:
+
+```bash
+fjsf init --mode=native
+```
+
+Native mode integrates with your shell's completion system instead of hijacking Tab, allowing fzf-tab to display completions with its fuzzy finder UI.
+
 **Clean uninstall:**
 
 ```bash

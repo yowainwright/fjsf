@@ -7,9 +7,20 @@ import {
   writeFileSync,
   mkdirSync,
 } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
 import { colors, colorize } from "./terminal.ts";
 import { spawnSync } from "child_process";
+
+const getShellScriptPath = (shell: string, scriptType: string): string => {
+  const currentDir = dirname(new URL(import.meta.url).pathname);
+  return join(currentDir, "shell-integrations", shell, `${scriptType}.${shell === "fish" ? "fish" : shell === "bash" ? "bash" : "zsh"}`);
+};
+
+const readShellScript = async (shell: string, scriptType: string): Promise<string> => {
+  const scriptPath = getShellScriptPath(shell, scriptType);
+  const file = Bun.file(scriptPath);
+  return await file.text();
+};
 
 export const getFjsfDir = (): string => {
   const home = homedir();
@@ -57,16 +68,19 @@ const getShellIntegrationFile = (shell: string): string => {
   return join(fjsfDir, `init.${shell}`);
 };
 
-const writeShellIntegrationFile = (shell: string): string => {
+const writeShellIntegrationFile = async (shell: string, initMode: string): Promise<string> => {
   const integrationFile = getShellIntegrationFile(shell);
-  const interceptorScript = getPackageManagerInterceptors(shell);
-  const autocompleteScript = getAutocompleteScript(shell);
+  const isNativeMode = initMode === "native";
+
+  const scriptType = isNativeMode ? "native" : "widget";
+  const interceptorScript = await readShellScript(shell, scriptType);
+  const autocompleteScript = await readShellScript(shell, "completions");
 
   const fjExists = checkIfAliasExists("fj");
-  const aliasScript = fjExists ? "" : `\n# fjsf alias\nalias fj='fjsf'\n`;
+  const aliasScript = fjExists ? "" : `\nalias fj='fjsf'\n`;
 
-  const content = `# fjsf shell integration
-${interceptorScript}
+  const content = `${interceptorScript}
+
 ${autocompleteScript}${aliasScript}`;
 
   writeFileSync(integrationFile, content);
@@ -82,180 +96,6 @@ const checkIfAliasExists = (aliasName: string): boolean => {
   });
 
   return result.status === 0;
-};
-
-export const getPackageManagerInterceptors = (shell: string): string => {
-  if (shell === "zsh") {
-    /* c8 ignore next 30 */
-    return `
-_fjsf_widget() {
-  if [[ "$BUFFER" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run([[:space:]](.*))?$ ]]; then
-    local pm=\${match[1]}
-    local query=\${match[3]:-""}
-    query=\${query%;*}
-    local script
-    script=$(fjsf --widget "$query")
-
-    if [ -n "$script" ]; then
-      BUFFER="$pm run $script"
-      CURSOR=$#BUFFER
-      zle accept-line
-    fi
-  else
-    zle expand-or-complete
-  fi
-}
-
-zle -N _fjsf_widget
-
-# Ensure our binding persists even if other tools (like bun) try to override it
-_fjsf_ensure_binding() {
-  # Only re-bind if something else has taken over Tab
-  local current_widget="\${widgets[^I]}"
-  if [[ "$current_widget" != "user:_fjsf_widget" ]]; then
-    bindkey '^I' _fjsf_widget
-  fi
-}
-
-# Run once on load
-bindkey '^I' _fjsf_widget
-
-# Re-bind before every prompt to maintain precedence over runtime completions
-autoload -Uz add-zsh-hook
-add-zsh-hook precmd _fjsf_ensure_binding
-`;
-  }
-
-  if (shell === "bash") {
-    /* c8 ignore next 30 */
-    return `
-_fjsf_complete() {
-  local line="$READLINE_LINE"
-
-  if [[ "$line" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run([[:space:]](.*))?$ ]]; then
-    local pm=\${BASH_REMATCH[1]}
-    local query=\${BASH_REMATCH[3]:-""}
-    local script
-    script=$(fjsf --widget "$query")
-
-    if [ -n "$script" ]; then
-      READLINE_LINE="$pm run $script"
-      READLINE_POINT=\${#READLINE_LINE}
-      return
-    fi
-  fi
-
-  complete -p &>/dev/null && return 124
-}
-
-# Ensure our binding persists even if other tools (like bun) try to override it
-_fjsf_ensure_binding() {
-  # Only re-bind if our binding is not active (check if bind output contains our function)
-  if ! bind -X | grep -q '_fjsf_complete'; then
-    bind -x '"\\C-i": _fjsf_complete' 2>/dev/null
-  fi
-}
-
-# Run once on load
-bind -x '"\\C-i": _fjsf_complete'
-
-# Re-bind before every prompt to maintain precedence over runtime completions
-if [[ ":$PROMPT_COMMAND:" != *":_fjsf_ensure_binding:"* ]]; then
-  PROMPT_COMMAND="_fjsf_ensure_binding\${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
-fi
-`;
-  }
-
-  if (shell === "fish") {
-    /* c8 ignore next 20 */
-    return `
-function _fjsf_widget
-  set -l line (commandline)
-
-  if string match -qr '^(npm|pnpm|yarn|bun)\\s+run(\\s.*)?$' -- $line
-    set -l parts (string match -r '^(npm|pnpm|yarn|bun)\\s+run(\\s(.*))?$' -- $line)
-    set -l pm $parts[2]
-    set -l query $parts[4]
-    if test -z "$query"
-      set query ""
-    end
-    set -l script (fjsf --widget "$query")
-
-    if test -n "$script"
-      commandline -r "$pm run $script"
-      commandline -f execute
-    end
-  else
-    commandline -f complete
-  end
-end
-
-bind \t _fjsf_widget
-`;
-  }
-
-  return "";
-};
-
-export const getAutocompleteScript = (shell: string): string => {
-  if (shell === "zsh") {
-    /* c8 ignore next 20 */
-    return `
-_fjsf_completions() {
-  local -a commands
-  commands=(
-    'find:Find all versions of file'
-    'f:Find (short)'
-    'path:Query specific file'
-    'p:Path (short)'
-    'exec:Execute key from file'
-    'e:Exec (short)'
-    'help:Show help'
-    'h:Help (short)'
-    'init:Setup shell integration'
-    'quit:Exit'
-    'q:Quit (short)'
-  )
-  _describe 'command' commands
-}
-
-compdef _fjsf_completions fjsf
-`;
-  }
-
-  if (shell === "bash") {
-    /* c8 ignore next 10 */
-    return `
-_fjsf_completions() {
-  local cur="\${COMP_WORDS[COMP_CWORD]}"
-  local commands="find f path p exec e help h quit q init"
-
-  if [ \${COMP_CWORD} -eq 1 ]; then
-    COMPREPLY=($(compgen -W "$commands" -- "$cur"))
-  fi
-}
-
-complete -F _fjsf_completions fjsf
-`;
-  }
-
-  if (shell === "fish") {
-    /* c8 ignore next 10 */
-    return `
-complete -c fjsf -f
-complete -c fjsf -n "__fish_use_subcommand" -a "find" -d "Find all versions of file"
-complete -c fjsf -n "__fish_use_subcommand" -a "f" -d "Find (short)"
-complete -c fjsf -n "__fish_use_subcommand" -a "path" -d "Query specific file"
-complete -c fjsf -n "__fish_use_subcommand" -a "p" -d "Path (short)"
-complete -c fjsf -n "__fish_use_subcommand" -a "exec" -d "Execute key from file"
-complete -c fjsf -n "__fish_use_subcommand" -a "e" -d "Exec (short)"
-complete -c fjsf -n "__fish_use_subcommand" -a "help" -d "Show help"
-complete -c fjsf -n "__fish_use_subcommand" -a "h" -d "Help (short)"
-complete -c fjsf -n "__fish_use_subcommand" -a "init" -d "Setup shell integration"
-`;
-  }
-
-  return "";
 };
 
 export const removeOldFjsfConfig = (configFile: string): void => {
@@ -367,7 +207,7 @@ const installGitHooks = (): void => {
   }
 };
 
-export const runInit = (): void => {
+export const runInit = async (initMode: string = "widget"): Promise<void> => {
   stdout.write(
     colorize(
       "\nfjsf shell integration setup\n\n",
@@ -388,6 +228,7 @@ export const runInit = (): void => {
   }
 
   stdout.write(colorize(`Detected shell: ${shell}\n`, colors.dim));
+  stdout.write(colorize(`Completion mode: ${initMode}\n`, colors.dim));
 
   const configFile = getShellConfigFile(shell);
 
@@ -403,7 +244,7 @@ export const runInit = (): void => {
 
   removeOldFjsfConfig(configFile);
 
-  const integrationFile = writeShellIntegrationFile(shell);
+  const integrationFile = await writeShellIntegrationFile(shell, initMode);
 
   addSourceToShellConfig(configFile, integrationFile);
 
@@ -429,4 +270,13 @@ export const runInit = (): void => {
   );
   stdout.write(colorize("\nRestart your shell or run: ", colors.dim));
   stdout.write(colorize(`source ${configFile}\n\n`, colors.bright));
+
+  if (initMode === "native") {
+    stdout.write(
+      colorize(
+        "\nℹ️  Using native completions mode (works with fzf-tab)\n",
+        colors.cyan,
+      ),
+    );
+  }
 };

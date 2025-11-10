@@ -6,12 +6,17 @@ export type AppMode =
   | "help"
   | "quit"
   | "init"
-  | "widget";
+  | "widget"
+  | "completions";
+
+export type InitMode = "native" | "widget";
 
 export interface ModeConfig {
   mode: AppMode;
   filePath?: string;
   execKey?: string;
+  initMode?: InitMode;
+  completionsQuery?: string;
 }
 
 export const showHelp = (): void => {
@@ -76,12 +81,30 @@ export const parseCliArgs = (args: string[]): ModeConfig => {
 
   const isInitMode = command === "init";
   if (isInitMode) {
-    return Object.assign({}, { mode: "init" as const });
+    const modeArg = args.find((arg) => arg.startsWith("--mode="));
+    const initMode = modeArg?.split("=")[1] as InitMode | undefined;
+    const validInitMode = initMode === "native" || initMode === "widget";
+    return Object.assign(
+      {},
+      {
+        mode: "init" as const,
+        initMode: validInitMode ? initMode : ("widget" as InitMode),
+      },
+    );
   }
 
   const isWidgetMode = command === "--widget";
   if (isWidgetMode) {
     return Object.assign({}, { mode: "widget" as const });
+  }
+
+  const isCompletionsMode = command === "--completions";
+  if (isCompletionsMode) {
+    const completionsQuery = args[1] || "";
+    return Object.assign(
+      {},
+      { mode: "completions" as const, completionsQuery },
+    );
   }
 
   const isFindMode = command === "find";

@@ -53,44 +53,58 @@ describe("init shell integration", () => {
     expect(hasAtLeastOne).toBe(true);
   });
 
-  it("package manager interceptors handle all shells", () => {
-    const { getPackageManagerInterceptors } = require("../../src/init.ts");
+  it("package manager interceptors handle all shells", async () => {
+    const { readFileSync } = require("fs");
+    const { join } = require("path");
 
-    const zshScript = getPackageManagerInterceptors("zsh");
+    const zshScript = readFileSync(
+      join(__dirname, "../../src/shell-integrations/zsh/widget.zsh"),
+      "utf-8"
+    );
     expect(zshScript).toContain("_fjsf_widget");
     expect(zshScript.length).toBeGreaterThan(0);
 
-    const bashScript = getPackageManagerInterceptors("bash");
+    const bashScript = readFileSync(
+      join(__dirname, "../../src/shell-integrations/bash/widget.bash"),
+      "utf-8"
+    );
     expect(bashScript).toContain("_fjsf_complete");
     expect(bashScript.length).toBeGreaterThan(0);
 
-    const fishScript = getPackageManagerInterceptors("fish");
+    const fishScript = readFileSync(
+      join(__dirname, "../../src/shell-integrations/fish/widget.fish"),
+      "utf-8"
+    );
     expect(fishScript).toContain("_fjsf_widget");
     expect(fishScript.length).toBeGreaterThan(0);
-
-    const unknownScript = getPackageManagerInterceptors("unknown");
-    expect(unknownScript).toBe("");
   });
 
   it("autocomplete scripts handle all shells", () => {
-    const { getAutocompleteScript } = require("../../src/init.ts");
+    const { readFileSync } = require("fs");
+    const { join } = require("path");
 
-    const zshScript = getAutocompleteScript("zsh");
+    const zshScript = readFileSync(
+      join(__dirname, "../../src/shell-integrations/zsh/completions.zsh"),
+      "utf-8"
+    );
     expect(zshScript).toContain("_fjsf_completions");
     expect(zshScript).toContain("compdef");
     expect(zshScript.length).toBeGreaterThan(0);
 
-    const bashScript = getAutocompleteScript("bash");
+    const bashScript = readFileSync(
+      join(__dirname, "../../src/shell-integrations/bash/completions.bash"),
+      "utf-8"
+    );
     expect(bashScript).toContain("_fjsf_completions");
     expect(bashScript).toContain("complete -F");
     expect(bashScript.length).toBeGreaterThan(0);
 
-    const fishScript = getAutocompleteScript("fish");
+    const fishScript = readFileSync(
+      join(__dirname, "../../src/shell-integrations/fish/completions.fish"),
+      "utf-8"
+    );
     expect(fishScript).toContain("complete -c fjsf");
     expect(fishScript.length).toBeGreaterThan(0);
-
-    const unknownScript = getAutocompleteScript("unknown");
-    expect(unknownScript).toBe("");
   });
 });
 
@@ -134,12 +148,17 @@ const shellIntegrationPatterns = {
 
 describe("shell integration content", () => {
   it("zsh integration includes binding persistence", () => {
-    const {
-      getPackageManagerInterceptors,
-      getAutocompleteScript,
-    } = require("../../src/init.ts");
-    const interceptors = getPackageManagerInterceptors("zsh");
-    const completions = getAutocompleteScript("zsh");
+    const { readFileSync } = require("fs");
+    const { join } = require("path");
+
+    const interceptors = readFileSync(
+      join(__dirname, "../../src/shell-integrations/zsh/widget.zsh"),
+      "utf-8"
+    );
+    const completions = readFileSync(
+      join(__dirname, "../../src/shell-integrations/zsh/completions.zsh"),
+      "utf-8"
+    );
     const fullContent = interceptors + completions;
 
     shellIntegrationPatterns.zsh.forEach((pattern) => {
@@ -148,12 +167,17 @@ describe("shell integration content", () => {
   });
 
   it("bash integration includes binding persistence", () => {
-    const {
-      getPackageManagerInterceptors,
-      getAutocompleteScript,
-    } = require("../../src/init.ts");
-    const interceptors = getPackageManagerInterceptors("bash");
-    const completions = getAutocompleteScript("bash");
+    const { readFileSync } = require("fs");
+    const { join } = require("path");
+
+    const interceptors = readFileSync(
+      join(__dirname, "../../src/shell-integrations/bash/widget.bash"),
+      "utf-8"
+    );
+    const completions = readFileSync(
+      join(__dirname, "../../src/shell-integrations/bash/completions.bash"),
+      "utf-8"
+    );
     const fullContent = interceptors + completions;
 
     shellIntegrationPatterns.bash.forEach((pattern) => {
@@ -162,12 +186,17 @@ describe("shell integration content", () => {
   });
 
   it("fish integration includes widget and completions", () => {
-    const {
-      getPackageManagerInterceptors,
-      getAutocompleteScript,
-    } = require("../../src/init.ts");
-    const interceptors = getPackageManagerInterceptors("fish");
-    const completions = getAutocompleteScript("fish");
+    const { readFileSync } = require("fs");
+    const { join } = require("path");
+
+    const interceptors = readFileSync(
+      join(__dirname, "../../src/shell-integrations/fish/widget.fish"),
+      "utf-8"
+    );
+    const completions = readFileSync(
+      join(__dirname, "../../src/shell-integrations/fish/completions.fish"),
+      "utf-8"
+    );
     const fullContent = interceptors + completions;
 
     shellIntegrationPatterns.fish.forEach((pattern) => {
