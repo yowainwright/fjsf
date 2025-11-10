@@ -1,0 +1,8 @@
+dist/
+node_modules/
+*.min.js
+*.min.css
+.git/
+.fjsf/
+
+tests/e2e/invalid.json

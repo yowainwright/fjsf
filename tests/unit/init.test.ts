@@ -185,6 +185,13 @@ describe("removeOldFjsfConfig", () => {
     }
   });
 
+  it("handles non-existent files gracefully", () => {
+    const { removeOldFjsfConfig } = require("../../src/init.ts");
+    const nonExistentFile = "/tmp/nonexistent-fjsf-test-file.sh";
+
+    expect(() => removeOldFjsfConfig(nonExistentFile)).not.toThrow();
+  });
+
   it("removes fjsf sections marked with comments", () => {
     const content = `export PATH="/usr/local/bin:$PATH"
 

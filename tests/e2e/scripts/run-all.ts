@@ -8,6 +8,7 @@ const SCRIPTS_DIR = resolve(process.cwd(), "tests/e2e/scripts");
 
 const testScripts = [
   "test-exec.ts",
+  "test-executor.ts",
   "test-run.ts",
   "test-find.ts",
   "test-init.ts",

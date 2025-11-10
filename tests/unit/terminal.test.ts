@@ -1,5 +1,15 @@
-import { describe, it, expect } from "bun:test";
-import { colors, colorize, highlightMatches } from "../../src/terminal.ts";
+import { describe, it, expect, mock } from "bun:test";
+import {
+  colors,
+  colorize,
+  highlightMatches,
+  clearScreen,
+  moveCursor,
+  hideCursor,
+  showCursor,
+  enableRawMode,
+  disableRawMode,
+} from "../../src/terminal.ts";
 
 describe("terminal", () => {
   describe("colorize", () => {
@@ -65,6 +75,102 @@ describe("terminal", () => {
       expect(colors.blue).toBe("\x1b[34m");
       expect(colors.magenta).toBe("\x1b[35m");
       expect(colors.gray).toBe("\x1b[90m");
+    });
+  });
+
+  describe("clearScreen", () => {
+    it("writes clear screen ANSI escape code", () => {
+      const mockWrite = mock(() => {});
+      const originalWrite = process.stdout.write;
+      process.stdout.write = mockWrite as any;
+
+      clearScreen();
+
+      expect(mockWrite).toHaveBeenCalledWith("\x1b[2J\x1b[H");
+
+      process.stdout.write = originalWrite;
+    });
+  });
+
+  describe("moveCursor", () => {
+    it("writes move cursor ANSI escape code", () => {
+      const mockWrite = mock(() => {});
+      const originalWrite = process.stdout.write;
+      process.stdout.write = mockWrite as any;
+
+      moveCursor(10, 20);
+
+      expect(mockWrite).toHaveBeenCalledWith("\x1b[20;10H");
+
+      process.stdout.write = originalWrite;
+    });
+  });
+
+  describe("hideCursor", () => {
+    it("writes hide cursor ANSI escape code", () => {
+      const mockWrite = mock(() => {});
+      const originalWrite = process.stdout.write;
+      process.stdout.write = mockWrite as any;
+
+      hideCursor();
+
+      expect(mockWrite).toHaveBeenCalledWith("\x1b[?25l");
+
+      process.stdout.write = originalWrite;
+    });
+  });
+
+  describe("showCursor", () => {
+    it("writes show cursor ANSI escape code", () => {
+      const mockWrite = mock(() => {});
+      const originalWrite = process.stdout.write;
+      process.stdout.write = mockWrite as any;
+
+      showCursor();
+
+      expect(mockWrite).toHaveBeenCalledWith("\x1b[?25h");
+
+      process.stdout.write = originalWrite;
+    });
+  });
+
+  describe("enableRawMode", () => {
+    it("enables raw mode when available", () => {
+      const mockSetRawMode = mock(() => {});
+      const mockResume = mock(() => {});
+      const originalSetRawMode = process.stdin.setRawMode;
+      const originalResume = process.stdin.resume;
+
+      process.stdin.setRawMode = mockSetRawMode as any;
+      process.stdin.resume = mockResume as any;
+
+      enableRawMode();
+
+      expect(mockSetRawMode).toHaveBeenCalledWith(true);
+      expect(mockResume).toHaveBeenCalled();
+
+      process.stdin.setRawMode = originalSetRawMode;
+      process.stdin.resume = originalResume;
+    });
+  });
+
+  describe("disableRawMode", () => {
+    it("disables raw mode when available", () => {
+      const mockSetRawMode = mock(() => {});
+      const mockPause = mock(() => {});
+      const originalSetRawMode = process.stdin.setRawMode;
+      const originalPause = process.stdin.pause;
+
+      process.stdin.setRawMode = mockSetRawMode as any;
+      process.stdin.pause = mockPause as any;
+
+      disableRawMode();
+
+      expect(mockSetRawMode).toHaveBeenCalledWith(false);
+      expect(mockPause).toHaveBeenCalled();
+
+      process.stdin.setRawMode = originalSetRawMode;
+      process.stdin.pause = originalPause;
     });
   });
 });

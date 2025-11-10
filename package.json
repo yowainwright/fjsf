@@ -65,6 +65,5 @@
     "npm": {
       "publish": true
     }
-  },
-  "module": "index.ts"
+  }
 }

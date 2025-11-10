@@ -1,5 +1,5 @@
-import { describe, it, expect } from "bun:test";
-import { parseCliArgs, getModeTitle } from "../../src/modes.ts";
+import { describe, it, expect, mock } from "bun:test";
+import { parseCliArgs, getModeTitle, showHelp } from "../../src/modes.ts";
 
 describe("parseCliArgs", () => {
   it("defaults to scripts mode with no args", () => {
@@ -80,6 +80,16 @@ describe("parseCliArgs", () => {
     expect(config.mode).toBe("scripts");
     expect(config.filePath).toBe("./package.json");
   });
+
+  it("defaults to scripts mode for unknown commands", () => {
+    const config = parseCliArgs(["unknown-command"]);
+    expect(config.mode).toBe("scripts");
+  });
+
+  it("defaults to scripts mode for random text", () => {
+    const config = parseCliArgs(["some-random-text"]);
+    expect(config.mode).toBe("scripts");
+  });
 });
 
 describe("getModeTitle", () => {
@@ -96,5 +106,41 @@ describe("getModeTitle", () => {
   it("returns path title with filename", () => {
     const title = getModeTitle({ mode: "path", filePath: "tsconfig.json" });
     expect(title).toBe("Fuzzy JSON Search & Filter - Path: tsconfig.json");
+  });
+
+  it("returns find title without filename", () => {
+    const title = getModeTitle({ mode: "find" });
+    expect(title).toBe("Fuzzy JSON Search & Filter - Find: JSON");
+  });
+
+  it("returns path title without filename", () => {
+    const title = getModeTitle({ mode: "path" });
+    expect(title).toBe("Fuzzy JSON Search & Filter - Path: JSON");
+  });
+
+  it("returns default title for other modes", () => {
+    const title = getModeTitle({ mode: "help" });
+    expect(title).toBe("Fuzzy JSON Search & Filter");
+  });
+});
+
+describe("showHelp", () => {
+  it("prints help text to console", () => {
+    let capturedOutput = "";
+    const mockLog = mock((msg: string) => {
+      capturedOutput = msg;
+    });
+    const originalLog = console.log;
+    console.log = mockLog as any;
+
+    showHelp();
+
+    expect(mockLog).toHaveBeenCalled();
+    expect(capturedOutput).toContain("fjsf - Fuzzy JSON Search & Filter");
+    expect(capturedOutput).toContain("USAGE:");
+    expect(capturedOutput).toContain("EXAMPLES:");
+    expect(capturedOutput).toContain("KEYBOARD CONTROLS:");
+
+    console.log = originalLog;
   });
 });

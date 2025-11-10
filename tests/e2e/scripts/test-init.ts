@@ -2,6 +2,8 @@
 
 import { spawnSync } from "child_process";
 import { resolve } from "path";
+import { existsSync } from "fs";
+import { homedir } from "os";
 
 const TEST_WORKSPACE_DIR = resolve(process.cwd(), "tests/e2e/.test-workspace");
 const FJSF_CLI = resolve(process.cwd(), "src/cli.ts");
@@ -14,7 +16,59 @@ interface TestScenario {
   description: string;
   checkFile?: string;
   shouldInclude?: string[];
+  verifyFjsfDir?: boolean;
 }
+
+const checkOutputContent = (
+  success: boolean,
+  scenario: TestScenario,
+  result: ReturnType<typeof spawnSync>,
+): boolean => {
+  const shouldCheck = success && scenario.shouldInclude;
+  if (!shouldCheck) return true;
+
+  const output = String(result.stdout || "") + String(result.stderr || "");
+  const missingItems = scenario.shouldInclude!.filter(
+    (item) => !output.toLowerCase().includes(item.toLowerCase()),
+  );
+
+  const hasMissingItems = missingItems.length > 0;
+  if (hasMissingItems) {
+    console.log(`   Missing expected items: ${missingItems.join(", ")}`);
+    return false;
+  }
+
+  return true;
+};
+
+const verifyFjsfDirectory = (
+  success: boolean,
+  scenario: TestScenario,
+): boolean => {
+  const shouldVerify = success && scenario.verifyFjsfDir;
+  if (!shouldVerify) return true;
+
+  const fjsfDir = resolve(homedir(), ".fjsf");
+  const shellFiles = ["init.zsh", "init.bash", "init.fish"];
+
+  const dirExists = existsSync(fjsfDir);
+  if (!dirExists) {
+    console.log(`   .fjsf directory not created`);
+    return false;
+  }
+
+  const hasAtLeastOneShellFile = shellFiles.some((file) =>
+    existsSync(resolve(fjsfDir, file)),
+  );
+
+  if (!hasAtLeastOneShellFile) {
+    console.log(`   No shell integration files created`);
+    return false;
+  }
+
+  console.log(`   .fjsf directory verified`);
+  return true;
+};
 
 const scenarios: TestScenario[] = [
   {
@@ -23,6 +77,12 @@ const scenarios: TestScenario[] = [
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: true,
     description: "Run init command to setup shell integration",
+    shouldInclude: [
+      "fjsf shell integration setup",
+      "detected shell",
+      "setup complete",
+    ],
+    verifyFjsfDir: true,
   },
 ];
 
@@ -40,20 +100,10 @@ const runTest = (scenario: TestScenario): boolean => {
     ? result.status === 0
     : result.status !== 0;
 
-  let contentCheck = true;
-  if (success && scenario.shouldInclude) {
-    const output = (result.stdout || "") + (result.stderr || "");
-    const missingItems = scenario.shouldInclude.filter(
-      (item) => !output.toLowerCase().includes(item.toLowerCase()),
-    );
+  const contentCheck = checkOutputContent(success, scenario, result);
+  const fileCheck = verifyFjsfDirectory(success, scenario);
 
-    if (missingItems.length > 0) {
-      contentCheck = false;
-      console.log(`   Missing expected items: ${missingItems.join(", ")}`);
-    }
-  }
-
-  if (success && contentCheck) {
+  if (success && contentCheck && fileCheck) {
     console.log(`   PASS`);
   } else {
     console.log(`   FAIL`);
@@ -69,7 +119,7 @@ const runTest = (scenario: TestScenario): boolean => {
     }
   }
 
-  return success && contentCheck;
+  return success && contentCheck && fileCheck;
 };
 
 const runAllTests = () => {
