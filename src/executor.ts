@@ -1,4 +1,4 @@
-import { stdout, exit } from "process";
+import { stdout } from "process";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import {
@@ -86,7 +86,7 @@ export const executeScript = async (script: PackageScript): Promise<void> => {
   announceExecution(command, filePath);
 
   const exitCode = await spawnProcess(command, cwd);
-  exit(exitCode);
+  process.exit(exitCode);
 };
 
 const getNestedValue = (obj: any, path: string): any => {
@@ -110,13 +110,13 @@ export const executeKey = async (config: ModeConfig): Promise<void> => {
   if (!filePath) {
     const error = colorize("Error: No file path provided\n", colors.yellow);
     stdout.write(error);
-    exit(1);
+    process.exit(1);
   }
 
   if (!execKey) {
     const error = colorize("Error: No key provided\n", colors.yellow);
     stdout.write(error);
-    exit(1);
+    process.exit(1);
   }
 
   try {
@@ -133,7 +133,7 @@ export const executeKey = async (config: ModeConfig): Promise<void> => {
         colors.yellow,
       );
       stdout.write(error);
-      exit(1);
+      process.exit(1);
     }
 
     const isString = typeof value === "string";
@@ -145,7 +145,7 @@ export const executeKey = async (config: ModeConfig): Promise<void> => {
         colors.yellow,
       );
       stdout.write(error);
-      exit(1);
+      process.exit(1);
     }
 
     if (!isScript) {
@@ -154,7 +154,7 @@ export const executeKey = async (config: ModeConfig): Promise<void> => {
         colors.yellow,
       );
       stdout.write(error);
-      exit(1);
+      process.exit(1);
     }
 
     // Extract script name (everything after "scripts.")
@@ -167,11 +167,11 @@ export const executeKey = async (config: ModeConfig): Promise<void> => {
     announceExecution(fullCommand, filePath);
 
     const exitCode = await spawnProcess(fullCommand, packageDir);
-    exit(exitCode);
+    process.exit(exitCode);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const coloredError = colorize(`Error: ${errorMessage}\n`, colors.yellow);
     stdout.write(coloredError);
-    exit(1);
+    process.exit(1);
   }
 };
