@@ -13,10 +13,18 @@ import { spawnSync } from "child_process";
 
 const getShellScriptPath = (shell: string, scriptType: string): string => {
   const currentDir = dirname(new URL(import.meta.url).pathname);
-  return join(currentDir, "shell-integrations", shell, `${scriptType}.${shell === "fish" ? "fish" : shell === "bash" ? "bash" : "zsh"}`);
+  return join(
+    currentDir,
+    "shell-integrations",
+    shell,
+    `${scriptType}.${shell === "fish" ? "fish" : shell === "bash" ? "bash" : "zsh"}`,
+  );
 };
 
-const readShellScript = async (shell: string, scriptType: string): Promise<string> => {
+const readShellScript = async (
+  shell: string,
+  scriptType: string,
+): Promise<string> => {
   const scriptPath = getShellScriptPath(shell, scriptType);
   const file = Bun.file(scriptPath);
   return await file.text();
@@ -68,7 +76,10 @@ const getShellIntegrationFile = (shell: string): string => {
   return join(fjsfDir, `init.${shell}`);
 };
 
-const writeShellIntegrationFile = async (shell: string, initMode: string): Promise<string> => {
+const writeShellIntegrationFile = async (
+  shell: string,
+  initMode: string,
+): Promise<string> => {
   const integrationFile = getShellIntegrationFile(shell);
   const isNativeMode = initMode === "native";
 

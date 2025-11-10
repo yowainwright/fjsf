@@ -14,13 +14,18 @@ const fuzzyMatch = (query: string, text: string): boolean => {
   return queryIndex === lowerQuery.length;
 };
 
-const filterScript = (query: string) => (script: PackageScript): boolean => {
-  const nameMatches = fuzzyMatch(query, script.name);
-  const workspaceMatches = fuzzyMatch(query, script.workspace);
-  return nameMatches || workspaceMatches;
-};
+const filterScript =
+  (query: string) =>
+  (script: PackageScript): boolean => {
+    const nameMatches = fuzzyMatch(query, script.name);
+    const workspaceMatches = fuzzyMatch(query, script.workspace);
+    return nameMatches || workspaceMatches;
+  };
 
-const filterScripts = (scripts: PackageScript[], query: string): PackageScript[] => {
+const filterScripts = (
+  scripts: PackageScript[],
+  query: string,
+): PackageScript[] => {
   if (!query) return scripts;
   return scripts.filter(filterScript(query));
 };

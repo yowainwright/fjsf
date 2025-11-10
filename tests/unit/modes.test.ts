@@ -68,11 +68,42 @@ describe("parseCliArgs", () => {
   it("parses init mode", () => {
     const config = parseCliArgs(["init"]);
     expect(config.mode).toBe("init");
+    expect(config.initMode).toBe("widget");
+  });
+
+  it("parses init mode with native mode", () => {
+    const config = parseCliArgs(["init", "--mode=native"]);
+    expect(config.mode).toBe("init");
+    expect(config.initMode).toBe("native");
+  });
+
+  it("parses init mode with widget mode", () => {
+    const config = parseCliArgs(["init", "--mode=widget"]);
+    expect(config.mode).toBe("init");
+    expect(config.initMode).toBe("widget");
+  });
+
+  it("defaults to widget mode for init with invalid mode", () => {
+    const config = parseCliArgs(["init", "--mode=invalid"]);
+    expect(config.mode).toBe("init");
+    expect(config.initMode).toBe("widget");
   });
 
   it("parses widget mode", () => {
     const config = parseCliArgs(["--widget"]);
     expect(config.mode).toBe("widget");
+  });
+
+  it("parses completions mode", () => {
+    const config = parseCliArgs(["--completions"]);
+    expect(config.mode).toBe("completions");
+    expect(config.completionsQuery).toBe("");
+  });
+
+  it("parses completions mode with query", () => {
+    const config = parseCliArgs(["--completions", "build"]);
+    expect(config.mode).toBe("completions");
+    expect(config.completionsQuery).toBe("build");
   });
 
   it("parses .json file as scripts mode with specific file", () => {

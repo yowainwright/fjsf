@@ -59,21 +59,21 @@ describe("init shell integration", () => {
 
     const zshScript = readFileSync(
       join(__dirname, "../../src/shell-integrations/zsh/widget.zsh"),
-      "utf-8"
+      "utf-8",
     );
     expect(zshScript).toContain("_fjsf_widget");
     expect(zshScript.length).toBeGreaterThan(0);
 
     const bashScript = readFileSync(
       join(__dirname, "../../src/shell-integrations/bash/widget.bash"),
-      "utf-8"
+      "utf-8",
     );
     expect(bashScript).toContain("_fjsf_complete");
     expect(bashScript.length).toBeGreaterThan(0);
 
     const fishScript = readFileSync(
       join(__dirname, "../../src/shell-integrations/fish/widget.fish"),
-      "utf-8"
+      "utf-8",
     );
     expect(fishScript).toContain("_fjsf_widget");
     expect(fishScript.length).toBeGreaterThan(0);
@@ -85,7 +85,7 @@ describe("init shell integration", () => {
 
     const zshScript = readFileSync(
       join(__dirname, "../../src/shell-integrations/zsh/completions.zsh"),
-      "utf-8"
+      "utf-8",
     );
     expect(zshScript).toContain("_fjsf_completions");
     expect(zshScript).toContain("compdef");
@@ -93,7 +93,7 @@ describe("init shell integration", () => {
 
     const bashScript = readFileSync(
       join(__dirname, "../../src/shell-integrations/bash/completions.bash"),
-      "utf-8"
+      "utf-8",
     );
     expect(bashScript).toContain("_fjsf_completions");
     expect(bashScript).toContain("complete -F");
@@ -101,7 +101,7 @@ describe("init shell integration", () => {
 
     const fishScript = readFileSync(
       join(__dirname, "../../src/shell-integrations/fish/completions.fish"),
-      "utf-8"
+      "utf-8",
     );
     expect(fishScript).toContain("complete -c fjsf");
     expect(fishScript.length).toBeGreaterThan(0);
@@ -153,11 +153,11 @@ describe("shell integration content", () => {
 
     const interceptors = readFileSync(
       join(__dirname, "../../src/shell-integrations/zsh/widget.zsh"),
-      "utf-8"
+      "utf-8",
     );
     const completions = readFileSync(
       join(__dirname, "../../src/shell-integrations/zsh/completions.zsh"),
-      "utf-8"
+      "utf-8",
     );
     const fullContent = interceptors + completions;
 
@@ -172,11 +172,11 @@ describe("shell integration content", () => {
 
     const interceptors = readFileSync(
       join(__dirname, "../../src/shell-integrations/bash/widget.bash"),
-      "utf-8"
+      "utf-8",
     );
     const completions = readFileSync(
       join(__dirname, "../../src/shell-integrations/bash/completions.bash"),
-      "utf-8"
+      "utf-8",
     );
     const fullContent = interceptors + completions;
 
@@ -191,17 +191,64 @@ describe("shell integration content", () => {
 
     const interceptors = readFileSync(
       join(__dirname, "../../src/shell-integrations/fish/widget.fish"),
-      "utf-8"
+      "utf-8",
     );
     const completions = readFileSync(
       join(__dirname, "../../src/shell-integrations/fish/completions.fish"),
-      "utf-8"
+      "utf-8",
     );
     const fullContent = interceptors + completions;
 
     shellIntegrationPatterns.fish.forEach((pattern) => {
       expect(fullContent).toContain(pattern);
     });
+  });
+});
+
+describe("native completions", () => {
+  it("zsh native completions exist", () => {
+    const { readFileSync } = require("fs");
+    const { join } = require("path");
+
+    const nativeScript = readFileSync(
+      join(__dirname, "../../src/shell-integrations/zsh/native.zsh"),
+      "utf-8",
+    );
+
+    expect(nativeScript).toContain("_fjsf_native_bun_run");
+    expect(nativeScript).toContain("_fjsf_native_npm_run");
+    expect(nativeScript).toContain("_fjsf_native_pnpm_run");
+    expect(nativeScript).toContain("_fjsf_native_yarn_run");
+    expect(nativeScript).toContain("compdef");
+    expect(nativeScript).toContain("fjsf --completions");
+  });
+
+  it("bash native completions exist", () => {
+    const { readFileSync } = require("fs");
+    const { join } = require("path");
+
+    const nativeScript = readFileSync(
+      join(__dirname, "../../src/shell-integrations/bash/native.bash"),
+      "utf-8",
+    );
+
+    expect(nativeScript).toContain("_fjsf_native_completions");
+    expect(nativeScript).toContain("complete -F");
+    expect(nativeScript).toContain("fjsf --completions");
+  });
+
+  it("fish native completions exist", () => {
+    const { readFileSync } = require("fs");
+    const { join } = require("path");
+
+    const nativeScript = readFileSync(
+      join(__dirname, "../../src/shell-integrations/fish/native.fish"),
+      "utf-8",
+    );
+
+    expect(nativeScript).toContain("_fjsf_native_completions");
+    expect(nativeScript).toContain("complete -c");
+    expect(nativeScript).toContain("fjsf --completions");
   });
 });
 
