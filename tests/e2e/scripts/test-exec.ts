@@ -64,6 +64,34 @@ const scenarios: TestScenario[] = [
     expectSuccess: false,
     description: "Try to execute from non-existent file (should fail)",
   },
+  {
+    name: "exec-without-filepath",
+    args: ["exec"],
+    cwd: TEST_WORKSPACE_DIR,
+    expectSuccess: false,
+    description: "Try to execute without file path (should fail)",
+  },
+  {
+    name: "exec-without-key",
+    args: ["exec", "package.json"],
+    cwd: TEST_WORKSPACE_DIR,
+    expectSuccess: false,
+    description: "Try to execute without key (should fail)",
+  },
+  {
+    name: "exec-invalid-json",
+    args: ["exec", "../invalid.json", "scripts.test"],
+    cwd: TEST_WORKSPACE_DIR,
+    expectSuccess: false,
+    description: "Try to execute from invalid JSON file (should fail)",
+  },
+  {
+    name: "exec-shorthand",
+    args: ["e", "package.json", "scripts.build"],
+    cwd: TEST_WORKSPACE_DIR,
+    expectSuccess: true,
+    description: "Execute using shorthand 'e' command",
+  },
 ];
 
 const runTest = (scenario: TestScenario): boolean => {

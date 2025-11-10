@@ -37,6 +37,12 @@ describe("handleInput", () => {
       const result = await handleInput(state, Buffer.from("\x1b"));
       expect(result).toBeNull();
     });
+
+    it("returns null on q key", async () => {
+      const state = createInitialState(mockScripts);
+      const result = await handleInput(state, Buffer.from("q"));
+      expect(result).toBeNull();
+    });
   });
 
   describe("navigation keys", () => {

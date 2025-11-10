@@ -175,4 +175,14 @@ describe("discoverScripts", () => {
     const scripts = discoverScripts(TEST_DIR);
     expect(scripts[0]?.workspace).toBe("root");
   });
+
+  it("handles permission errors gracefully", () => {
+    const result = discoverScripts("/nonexistent/path/that/does/not/exist");
+    expect(result).toEqual([]);
+  });
+
+  it("handles invalid directories gracefully", () => {
+    const result = discoverScripts("/dev/null");
+    expect(result).toEqual([]);
+  });
 });
