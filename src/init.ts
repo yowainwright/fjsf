@@ -123,12 +123,20 @@ export const removeOldFjsfConfig = (configFile: string): void => {
     const line = lines[i]!;
     const trimmed = line.trim();
 
+    const isSourceLine = trimmed.match(/^\[.*\]\s*&&\s*source.*\.fjsf\/init\./);
+
     if (trimmed.startsWith("# fjsf")) {
       inFjsfSection = true;
       continue;
     }
 
     if (inFjsfSection) {
+      if (isSourceLine) {
+        inFjsfSection = false;
+        filteredLines.push(line);
+        continue;
+      }
+
       if (
         trimmed === "" ||
         (trimmed.startsWith("#") && !trimmed.includes("fjsf"))
@@ -140,12 +148,12 @@ export const removeOldFjsfConfig = (configFile: string): void => {
     }
 
     if (
-      trimmed.includes("_fjsf") ||
-      trimmed.includes("fjsf --widget") ||
-      trimmed.includes(".fjsf/init.") ||
-      (trimmed.includes("source") && trimmed.includes(".fjsf")) ||
-      (trimmed.includes("alias") && trimmed.includes("fj=")) ||
-      (trimmed.includes("complete") && trimmed.includes("fjsf"))
+      !isSourceLine &&
+      (trimmed.includes("_fjsf") ||
+        trimmed.includes("fjsf --widget") ||
+        trimmed.includes(".fjsf/init.") ||
+        (trimmed.includes("alias") && trimmed.includes("fj=")) ||
+        (trimmed.includes("complete") && trimmed.includes("fjsf")))
     ) {
       continue;
     }
@@ -253,11 +261,26 @@ export const runInit = async (initMode: string = "widget"): Promise<void> => {
   const fjsfDir = getFjsfDir();
   stdout.write(colorize(`fjsf directory: ${fjsfDir}\n\n`, colors.dim));
 
-  removeOldFjsfConfig(configFile);
+  const integrationFile = getShellIntegrationFile(shell);
+  const fileContent = existsSync(configFile)
+    ? readFileSync(configFile, "utf-8")
+    : "";
+  const sourceLine = `[ -f "${integrationFile}" ] && source "${integrationFile}"`;
+  const hasCorrectSource = fileContent.includes(sourceLine);
 
-  const integrationFile = await writeShellIntegrationFile(shell, initMode);
+  if (!hasCorrectSource) {
+    removeOldFjsfConfig(configFile);
+  }
 
-  addSourceToShellConfig(configFile, integrationFile);
+  await writeShellIntegrationFile(shell, initMode);
+
+  if (!hasCorrectSource) {
+    addSourceToShellConfig(configFile, integrationFile);
+  } else {
+    stdout.write(
+      colorize(`\n✓ Already sourced in ${configFile}\n`, colors.green),
+    );
+  }
 
   const fjExists = checkIfAliasExists("fj");
   if (fjExists) {

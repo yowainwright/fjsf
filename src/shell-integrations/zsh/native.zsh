@@ -1,7 +1,10 @@
-_fjsf_native_bun_run() {
-  local context state line
+_fjsf_original_bun=${_comps[bun]:-_default}
+_fjsf_original_npm=${_comps[npm]:-_default}
+_fjsf_original_pnpm=${_comps[pnpm]:-_default}
+_fjsf_original_yarn=${_comps[yarn]:-_default}
 
-  if [[ ${words[2]} == "run" ]] && (( CURRENT == 3 )); then
+_fjsf_native_bun_run() {
+  if [[ ${words[2]} == "run" ]] && (( CURRENT >= 3 )); then
     local -a scripts
     local query="${words[3]:-}"
 
@@ -9,16 +12,15 @@ _fjsf_native_bun_run() {
 
     if (( ${#scripts} > 0 )); then
       _describe 'npm scripts' scripts
+      return 0
     fi
-  else
-    _default
   fi
+
+  $_fjsf_original_bun "$@"
 }
 
 _fjsf_native_npm_run() {
-  local context state line
-
-  if [[ ${words[2]} == "run" ]] && (( CURRENT == 3 )); then
+  if [[ ${words[2]} == "run" ]] && (( CURRENT >= 3 )); then
     local -a scripts
     local query="${words[3]:-}"
 
@@ -26,16 +28,15 @@ _fjsf_native_npm_run() {
 
     if (( ${#scripts} > 0 )); then
       _describe 'npm scripts' scripts
+      return 0
     fi
-  else
-    _default
   fi
+
+  $_fjsf_original_npm "$@"
 }
 
 _fjsf_native_pnpm_run() {
-  local context state line
-
-  if [[ ${words[2]} == "run" ]] && (( CURRENT == 3 )); then
+  if [[ ${words[2]} == "run" ]] && (( CURRENT >= 3 )); then
     local -a scripts
     local query="${words[3]:-}"
 
@@ -43,16 +44,15 @@ _fjsf_native_pnpm_run() {
 
     if (( ${#scripts} > 0 )); then
       _describe 'npm scripts' scripts
+      return 0
     fi
-  else
-    _default
   fi
+
+  $_fjsf_original_pnpm "$@"
 }
 
 _fjsf_native_yarn_run() {
-  local context state line
-
-  if [[ ${words[2]} == "run" ]] && (( CURRENT == 3 )); then
+  if [[ ${words[2]} == "run" ]] && (( CURRENT >= 3 )); then
     local -a scripts
     local query="${words[3]:-}"
 
@@ -60,10 +60,11 @@ _fjsf_native_yarn_run() {
 
     if (( ${#scripts} > 0 )); then
       _describe 'npm scripts' scripts
+      return 0
     fi
-  else
-    _default
   fi
+
+  $_fjsf_original_yarn "$@"
 }
 
 compdef _fjsf_native_bun_run bun
