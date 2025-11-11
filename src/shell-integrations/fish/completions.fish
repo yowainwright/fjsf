@@ -1,0 +1,10 @@
+complete -c fjsf -f
+complete -c fjsf -n "__fish_use_subcommand" -a "find" -d "Find all versions of file"
+complete -c fjsf -n "__fish_use_subcommand" -a "f" -d "Find (short)"
+complete -c fjsf -n "__fish_use_subcommand" -a "path" -d "Query specific file"
+complete -c fjsf -n "__fish_use_subcommand" -a "p" -d "Path (short)"
+complete -c fjsf -n "__fish_use_subcommand" -a "exec" -d "Execute key from file"
+complete -c fjsf -n "__fish_use_subcommand" -a "e" -d "Exec (short)"
+complete -c fjsf -n "__fish_use_subcommand" -a "help" -d "Show help"
+complete -c fjsf -n "__fish_use_subcommand" -a "h" -d "Help (short)"
+complete -c fjsf -n "__fish_use_subcommand" -a "init" -d "Setup shell integration"
