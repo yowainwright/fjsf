@@ -1,5 +1,11 @@
 import { describe, it, expect, afterEach } from "bun:test";
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from "fs";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  unlinkSync,
+  mkdirSync,
+} from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -367,7 +373,7 @@ function myfunction() {
     expect(result).toBe(content);
   });
 
-  it("removes source lines for .fjsf integration files", () => {
+  it("preserves correctly formatted source line", () => {
     const content = `export PATH="/usr/local/bin:$PATH"
 
 # fjsf
@@ -381,9 +387,79 @@ alias ll="ls -la"`;
     removeOldFjsfConfig(testFile);
 
     const result = readFileSync(testFile, "utf-8");
-    expect(result).not.toContain(".fjsf");
-    expect(result).not.toContain("source");
+    expect(result).toContain("[ -f");
+    expect(result).toContain(".fjsf/init.zsh");
+    expect(result).toContain("source");
     expect(result).toContain("export PATH");
     expect(result).toContain("alias ll");
+  });
+
+  it("removes old inline fjsf code but keeps source line", () => {
+    const content = `export PATH="/usr/local/bin:$PATH"
+
+# fjsf
+_fjsf_widget() {
+  echo "old code"
+}
+
+[ -f "/Users/user/.fjsf/init.zsh" ] && source "/Users/user/.fjsf/init.zsh"
+
+alias ll="ls -la"`;
+
+    writeFileSync(testFile, content);
+
+    const { removeOldFjsfConfig } = require("../../src/init.ts");
+    removeOldFjsfConfig(testFile);
+
+    const result = readFileSync(testFile, "utf-8");
+    expect(result).not.toContain("_fjsf_widget");
+    expect(result).not.toContain("old code");
+    expect(result).toContain("[ -f");
+    expect(result).toContain(".fjsf/init.zsh");
+    expect(result).toContain("source");
+    expect(result).toContain("export PATH");
+    expect(result).toContain("alias ll");
+  });
+});
+
+describe("duplicate prevention", () => {
+  const testFile = join(tmpdir(), `test-fjsf-dup-${Date.now()}.sh`);
+
+  afterEach(() => {
+    if (existsSync(testFile)) {
+      unlinkSync(testFile);
+    }
+  });
+
+  it("does not add duplicate source lines when already present", () => {
+    const fjsfDir = join(tmpdir(), ".fjsf-test");
+    const integrationFile = join(fjsfDir, "init.zsh");
+
+    if (!existsSync(fjsfDir)) {
+      mkdirSync(fjsfDir, { recursive: true });
+    }
+
+    const content = `export PATH="/usr/local/bin:$PATH"
+
+# fjsf
+[ -f "${integrationFile}" ] && source "${integrationFile}"
+
+alias ll="ls -la"`;
+
+    writeFileSync(testFile, content);
+    writeFileSync(integrationFile, "# test integration file");
+
+    const originalLineCount = content.split("\n").length;
+
+    const fileContent = readFileSync(testFile, "utf-8");
+    const sourceLine = `[ -f "${integrationFile}" ] && source "${integrationFile}"`;
+    const hasCorrectSource = fileContent.includes(sourceLine);
+
+    expect(hasCorrectSource).toBe(true);
+
+    const result = readFileSync(testFile, "utf-8");
+    const resultLineCount = result.split("\n").length;
+
+    expect(resultLineCount).toBe(originalLineCount);
   });
 });

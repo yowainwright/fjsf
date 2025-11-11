@@ -123,12 +123,20 @@ export const removeOldFjsfConfig = (configFile: string): void => {
     const line = lines[i]!;
     const trimmed = line.trim();
 
+    const isSourceLine = trimmed.match(/^\[.*\]\s*&&\s*source.*\.fjsf\/init\./);
+
     if (trimmed.startsWith("# fjsf")) {
       inFjsfSection = true;
       continue;
     }
 
     if (inFjsfSection) {
+      if (isSourceLine) {
+        inFjsfSection = false;
+        filteredLines.push(line);
+        continue;
+      }
+
       if (
         trimmed === "" ||
         (trimmed.startsWith("#") && !trimmed.includes("fjsf"))
@@ -138,8 +146,6 @@ export const removeOldFjsfConfig = (configFile: string): void => {
         continue;
       }
     }
-
-    const isSourceLine = trimmed.match(/^\[.*\]\s*&&\s*source.*\.fjsf\/init\./);
 
     if (
       !isSourceLine &&
