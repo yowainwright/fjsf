@@ -89,6 +89,18 @@ describe("parseCliArgs", () => {
     expect(config.initMode).toBe("widget");
   });
 
+  it("parses init mode with --native flag", () => {
+    const config = parseCliArgs(["init", "--native"]);
+    expect(config.mode).toBe("init");
+    expect(config.initMode).toBe("native");
+  });
+
+  it("parses init mode with --widget flag", () => {
+    const config = parseCliArgs(["init", "--widget"]);
+    expect(config.mode).toBe("init");
+    expect(config.initMode).toBe("widget");
+  });
+
   it("parses widget mode", () => {
     const config = parseCliArgs(["--widget"]);
     expect(config.mode).toBe("widget");

@@ -64,3 +64,15 @@ services:
     profiles:
       - scripts
       - all
+
+  test-completions:
+    build:
+      context: ../../
+      dockerfile: tests/e2e/dockerfiles/Dockerfile.completions
+    container_name: fjsf-e2e-test-completions
+    environment:
+      - NODE_ENV=test
+      - SHELL=/bin/zsh
+    profiles:
+      - completions
+      - all
