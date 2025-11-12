@@ -1,0 +1,32 @@
+FROM oven/bun:1
+
+# Install zsh and required tools
+RUN apt-get update && apt-get install -y \
+  zsh \
+  git \
+  curl \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install fzf
+RUN git clone --depth 1 https://github.com/junegunn/fzf.git /root/.fzf && \
+  /root/.fzf/install --all
+
+# Install fzf-tab
+RUN git clone https://github.com/Aloxaf/fzf-tab /root/.fzf-tab
+
+WORKDIR /workspace
+
+# Copy the rest of the code
+COPY . .
+
+RUN bun install --ignore-scripts
+
+# Generate test monorepo
+RUN bun run tests/e2e/scripts/generate-monorepo.ts generate
+
+# Setup zsh with fzf-tab
+RUN echo 'source /root/.fzf-tab/fzf-tab.plugin.zsh' >> /root/.zshrc && \
+  echo 'autoload -Uz compinit && compinit' >> /root/.zshrc
+
+# Run the completions test
+CMD ["bun", "run", "tests/e2e/scripts/test-completions.ts"]

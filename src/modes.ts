@@ -32,7 +32,8 @@ USAGE:
   fjsf p <file>             Short form of path
   fjsf exec <file> <key>    Execute a specific key from JSON file
   fjsf e <file> <key>       Short form of exec
-  fjsf init                 Setup shell integration (alias, autocomplete)
+  fjsf init                 Setup shell integration (widget mode, default)
+  fjsf init --native        Setup with native completions (works with fzf-tab)
   fjsf help                 Show this help
   fjsf h                    Short form of help
   fjsf quit                 Exit
@@ -82,13 +83,19 @@ export const parseCliArgs = (args: string[]): ModeConfig => {
   const isInitMode = command === "init";
   if (isInitMode) {
     const modeArg = args.find((arg) => arg.startsWith("--mode="));
+    const hasNativeFlag = args.includes("--native");
+
     const initMode = modeArg?.split("=")[1] as InitMode | undefined;
     const validInitMode = initMode === "native" || initMode === "widget";
+
+    const isNativeMode = validInitMode ? initMode === "native" : hasNativeFlag;
+    const finalInitMode = isNativeMode ? "native" : "widget";
+
     return Object.assign(
       {},
       {
         mode: "init" as const,
-        initMode: validInitMode ? initMode : ("widget" as InitMode),
+        initMode: finalInitMode as InitMode,
       },
     );
   }

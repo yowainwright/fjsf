@@ -1,3 +1,8 @@
+if ! (( $+_comps )); then
+  autoload -Uz compinit
+  compinit -D
+fi
+
 _fjsf_original_bun=${_comps[bun]:-_default}
 _fjsf_original_npm=${_comps[npm]:-_default}
 _fjsf_original_pnpm=${_comps[pnpm]:-_default}
