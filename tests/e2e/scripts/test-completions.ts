@@ -175,24 +175,24 @@ const testCompletionRegistration = () => {
     hasCompdefs ? "" : `Expected 4 compdefs, found: ${checkCompdef.stdout}`,
   );
 
-  // Check for original completion saving
-  const checkOriginals = spawnSync(
+  // Check for dynamic completion lookup function
+  const checkDynamicLookup = spawnSync(
     "grep",
-    ["-c", "_fjsf_original_", initFile],
+    ["-c", "_fjsf_get_original_completion", initFile],
     {
       encoding: "utf-8",
       stdio: "pipe",
     },
   );
 
-  const hasOriginals =
-    checkOriginals.status === 0 && parseInt(checkOriginals.stdout) >= 4;
+  const hasDynamicLookup =
+    checkDynamicLookup.status === 0 && parseInt(checkDynamicLookup.stdout) >= 1;
   addResult(
-    "Init file saves original completions",
-    hasOriginals,
-    hasOriginals
+    "Init file has dynamic completion lookup",
+    hasDynamicLookup,
+    hasDynamicLookup
       ? ""
-      : `Expected 4 original saves, found: ${checkOriginals.stdout}`,
+      : `Expected dynamic lookup function, found: ${checkDynamicLookup.stdout}`,
   );
 };
 

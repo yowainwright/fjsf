@@ -3,10 +3,16 @@ if ! (( $+_comps )); then
   compinit -D
 fi
 
-_fjsf_original_bun=${_comps[bun]:-_default}
-_fjsf_original_npm=${_comps[npm]:-_default}
-_fjsf_original_pnpm=${_comps[pnpm]:-_default}
-_fjsf_original_yarn=${_comps[yarn]:-_default}
+_fjsf_get_original_completion() {
+  local cmd=$1
+  local comp_func="${_comps[$cmd]}"
+
+  if [[ -n "$comp_func" && "$comp_func" != "_fjsf_native_${cmd}_run" ]]; then
+    echo "$comp_func"
+  else
+    echo "_default"
+  fi
+}
 
 _fjsf_native_bun_run() {
   if [[ ${words[2]} == "run" ]] && (( CURRENT >= 3 )); then
@@ -21,7 +27,8 @@ _fjsf_native_bun_run() {
     fi
   fi
 
-  $_fjsf_original_bun "$@"
+  local original_func=$(_fjsf_get_original_completion "bun")
+  $original_func "$@"
 }
 
 _fjsf_native_npm_run() {
@@ -37,7 +44,8 @@ _fjsf_native_npm_run() {
     fi
   fi
 
-  $_fjsf_original_npm "$@"
+  local original_func=$(_fjsf_get_original_completion "npm")
+  $original_func "$@"
 }
 
 _fjsf_native_pnpm_run() {
@@ -53,7 +61,8 @@ _fjsf_native_pnpm_run() {
     fi
   fi
 
-  $_fjsf_original_pnpm "$@"
+  local original_func=$(_fjsf_get_original_completion "pnpm")
+  $original_func "$@"
 }
 
 _fjsf_native_yarn_run() {
@@ -69,10 +78,18 @@ _fjsf_native_yarn_run() {
     fi
   fi
 
-  $_fjsf_original_yarn "$@"
+  local original_func=$(_fjsf_get_original_completion "yarn")
+  $original_func "$@"
 }
 
-compdef _fjsf_native_bun_run bun
-compdef _fjsf_native_npm_run npm
-compdef _fjsf_native_pnpm_run pnpm
-compdef _fjsf_native_yarn_run yarn
+_fjsf_ensure_completions() {
+  compdef _fjsf_native_bun_run bun
+  compdef _fjsf_native_npm_run npm
+  compdef _fjsf_native_pnpm_run pnpm
+  compdef _fjsf_native_yarn_run yarn
+}
+
+_fjsf_ensure_completions
+
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _fjsf_ensure_completions
