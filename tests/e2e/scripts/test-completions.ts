@@ -24,7 +24,6 @@ const addResult = (name: string, passed: boolean, message: string = "") => {
   }
 };
 
-// Test 1: Verify fjsf --completions output format
 const testCompletionsOutput = () => {
   console.log("\n=== Test 1: Completions Output Format ===");
 
@@ -52,14 +51,12 @@ const testCompletionsOutput = () => {
       : `Found lines without colon: ${lines.filter((l) => !l.includes(":")).join(", ")}`,
   );
 
-  // Check for specific scripts we know should exist
   const hasDevScript = result.stdout.includes("dev:");
   const hasTestScript = result.stdout.includes("test:");
   addResult("Contains dev script", hasDevScript);
   addResult("Contains test script", hasTestScript);
 };
 
-// Test 2: Initialize fjsf with native mode
 const testInitNativeMode = () => {
   console.log("\n=== Test 2: Initialize Native Mode ===");
 
@@ -84,11 +81,9 @@ const testInitNativeMode = () => {
   addResult("Creates init.zsh file", fileExists);
 };
 
-// Test 3: Test the native completion function directly
 const testNativeCompletionFunction = () => {
   console.log("\n=== Test 3: Native Completion Function ===");
 
-  // Create a test zsh script
   const fjsfDir = resolve(homedir(), ".fjsf");
   const initFile = resolve(fjsfDir, "init.zsh");
 
@@ -102,20 +97,16 @@ const testNativeCompletionFunction = () => {
     return;
   }
 
-  // Create a test script that simulates zsh completion
   const testScript = `
 #!/bin/zsh
 source ${initFile}
 
-# Simulate the zsh completion context
 typeset -a words
 words=(bun run test)
 CURRENT=3
 
-# Call the completion function
 _fjsf_native_bun_run
 
-# Check if we got completions
 if (( \${#_describe_called} > 0 )); then
   echo "COMPLETION_SUCCESS"
 fi
@@ -144,7 +135,6 @@ fi
   );
 };
 
-// Test 4: Verify completion function registration
 const testCompletionRegistration = () => {
   console.log("\n=== Test 4: Completion Function Registration ===");
 
@@ -161,7 +151,6 @@ const testCompletionRegistration = () => {
     return;
   }
 
-  // Check if compdef commands are present in the init file
   const checkCompdef = spawnSync("grep", ["-c", "compdef", initFile], {
     encoding: "utf-8",
     stdio: "pipe",
@@ -175,7 +164,6 @@ const testCompletionRegistration = () => {
     hasCompdefs ? "" : `Expected 4 compdefs, found: ${checkCompdef.stdout}`,
   );
 
-  // Check for dynamic completion lookup function
   const checkDynamicLookup = spawnSync(
     "grep",
     ["-c", "_fjsf_get_original_completion", initFile],
@@ -196,7 +184,6 @@ const testCompletionRegistration = () => {
   );
 };
 
-// Test 5: Test with actual zsh completion system
 const testZshCompletionSystem = () => {
   console.log("\n=== Test 5: Zsh Completion System Integration ===");
 
@@ -213,21 +200,17 @@ const testZshCompletionSystem = () => {
     return;
   }
 
-  // Test script that actually triggers the completion
   const testScript = `#!/bin/zsh
 autoload -Uz compinit
 compinit
 
 source ${initFile}
 
-# Set up the completion context
 setopt interactivecomments
 setopt NO_NOMATCH
 
-# Simulate typing "bun run " and requesting completions
 print -z "bun run "
 
-# Get completions programmatically
 typeset -a reply
 reply=(\${(f)"\$(bun ${FJSF_CLI} --completions 2>/dev/null)"})
 
@@ -255,7 +238,6 @@ fi
   );
 };
 
-// Test 6: Test fuzzy filtering in completions
 const testFuzzyFiltering = () => {
   console.log("\n=== Test 6: Fuzzy Filtering ===");
 
@@ -272,7 +254,6 @@ const testFuzzyFiltering = () => {
   );
 };
 
-// Run all tests
 const runAllTests = () => {
   console.log("╔══════════════════════════════════════════╗");
   console.log("║  fjsf Completions E2E Tests             ║");
@@ -285,7 +266,6 @@ const runAllTests = () => {
   testZshCompletionSystem();
   testFuzzyFiltering();
 
-  // Summary
   console.log("\n" + "=".repeat(50));
   const passed = results.filter((r) => r.passed).length;
   const total = results.length;

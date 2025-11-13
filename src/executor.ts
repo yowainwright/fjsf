@@ -157,7 +157,6 @@ export const executeKey = async (config: ModeConfig): Promise<void> => {
       process.exit(1);
     }
 
-    // Extract script name (everything after "scripts.")
     const scriptName = execKey.substring("scripts.".length);
     const packageDir = dirname(absolutePath);
     const packageManager = detectPackageManager(packageDir);
