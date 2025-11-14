@@ -14,12 +14,13 @@ A zero-dependency CLI tool for fuzzy searching and executing scripts within json
 
 ## Why fjsf?
 
-**Stop typing full script names.** Run `fjsf init` once, then just type `npm run <TAB>` and get an interactive tooltip with all your scripts. That's it. No more:
+**Stop typing full script names.** Run `fjsf init` once, then just type `npm run <TAB>` and get an interactive tooltip with all your scripts. That's it. 
 
-- Typing `npm run test:unit:watch:verbose`
+No more:
+
+- Typing `npm run test....<you forgot>`
 - Opening `package.json` to remember script names
-- Scrolling through `npm run` help text
-- Context switching between editor and terminal
+- Context switching between text and terminal
 
 Type less. Run faster. Stay in flow.
 
