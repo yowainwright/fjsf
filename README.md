@@ -318,6 +318,10 @@ chmod +x fjsf-*
 sudo mv fjsf-* /usr/local/bin/fjsf
 ```
 
+## Troubleshooting
+
+**Tab completions not working:** Ensure completion files are loaded before `compinit` in your shell config. Clear cache with `rm -rf ~/.zcompdump*` and reload.
+
 ## License
 
 MIT
