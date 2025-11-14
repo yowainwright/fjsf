@@ -75,6 +75,94 @@ graph TD
 - Interactive terminal UI with keyboard navigation
 - Shows which workspace and file each entry belongs to
 
+## Recipes
+
+### Quick Script Execution (Shell Integration)
+
+After running `fjsf init`, use Tab to fuzzy search scripts:
+
+```bash
+npm run <TAB>
+# Interactive fuzzy search appears:
+# ❯ dev
+#   build
+#   build:binary
+#   test
+#   lint
+
+npm run t<TAB>
+# Filters to:
+# ❯ test
+#   test:e2e
+#   typecheck
+
+bun run bui<TAB>
+# Shows:
+# ❯ build
+#   build:binary
+#   build:all
+```
+
+### Monorepo Dependency Audit
+
+Check which packages use a dependency and which versions:
+
+```bash
+fjsf find package.json
+# Type: "react"
+# Shows:
+# dependencies.react:[workspace-a] ^18.2.0
+# dependencies.react:[workspace-b] ^18.0.0
+# devDependencies.react:[workspace-c] ^17.0.2
+# peerDependencies.react:[shared-ui] ^18.0.0
+```
+
+### Configuration Consistency Check
+
+Find TypeScript compiler settings across all packages:
+
+```bash
+fjsf find tsconfig.json
+# Type: "target"
+# Shows:
+# compilerOptions.target:[packages/api] ES2020
+# compilerOptions.target:[packages/web] ES2022
+# compilerOptions.target:[packages/cli] ES2018
+```
+
+### Script Discovery Across Workspaces
+
+Find all test scripts in a monorepo:
+
+```bash
+fjsf find package.json
+# Type: "scripts.test"
+# Shows:
+# scripts.test:[workspace-a] jest
+# scripts.test:[workspace-b] vitest
+# scripts.test:[workspace-c] bun test
+```
+
+### Find Missing Dependencies
+
+Check if all packages have the same dev tool:
+
+```bash
+fjsf find package.json
+# Type: "prettier"
+# Shows which packages have it, reveals which don't
+```
+
+### Quick Config Value Lookup
+
+Check a specific setting without opening files:
+
+```bash
+fjsf path ./tsconfig.json
+# Type: "strict"
+# Shows: compilerOptions.strict: true
+```
+
 ## Usage
 
 ### Scripts Mode (Default)
@@ -317,6 +405,10 @@ Make the binary executable and move it to your PATH:
 chmod +x fjsf-*
 sudo mv fjsf-* /usr/local/bin/fjsf
 ```
+
+## Troubleshooting
+
+**Tab completions not working:** Ensure completion files are loaded before `compinit` in your shell config. Clear cache with `rm -rf ~/.zcompdump*` and reload.
 
 ## License
 
