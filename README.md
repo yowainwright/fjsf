@@ -14,12 +14,13 @@ A zero-dependency CLI tool for fuzzy searching and executing scripts within json
 
 ## Why fjsf?
 
-**Stop typing full script names.** Run `fjsf init` once, then just type `npm run <TAB>` and get an interactive tooltip with all your scripts. That's it. No more:
+**Stop typing full script names.** Run `fjsf init` once, then just type `npm run <TAB>` and get an interactive tooltip with all your scripts. That's it.
 
-- Typing `npm run test:unit:watch:verbose`
+No more:
+
+- Typing `npm run test....<you forgot>`
 - Opening `package.json` to remember script names
-- Scrolling through `npm run` help text
-- Context switching between editor and terminal
+- Context switching between text and terminal
 
 Type less. Run faster. Stay in flow.
 
@@ -77,16 +78,22 @@ graph TD
 
 ## Recipes
 
-### Quick Script Execution (Shell Integration)
+### Shell Integration - Never Type Full Script Names Again
 
-After running `fjsf init`, use Tab to fuzzy search scripts:
+Setup once:
+
+```bash
+fjsf init               # Supports bash, zsh, fish
+# Restart your shell
+```
+
+Now type `npm run <TAB>` for instant fuzzy search:
 
 ```bash
 npm run <TAB>
 # Interactive fuzzy search appears:
 # ❯ dev
 #   build
-#   build:binary
 #   test
 #   lint
 
@@ -103,59 +110,50 @@ bun run bui<TAB>
 #   build:all
 ```
 
-### Monorepo Dependency Audit
+Works with npm, pnpm, yarn, and bun. Press Tab to search, arrow keys to navigate, Enter to run.
 
-Check which packages use a dependency and which versions:
+**Using with fzf-tab?** Run `fjsf init --mode=native` instead.
+
+**Customize key binding:** Edit `~/.fjsf/init.{zsh,bash,fish}` and change the bindkey (default is Tab/`^I`).
+
+**Uninstall:** `rm -rf ~/.fjsf` and remove the source line from your shell config.
+
+### Search & Execute Scripts
+
+```bash
+fjsf                    # Search all scripts in current repo
+fjsf ./package.json     # Search scripts in specific file
+```
+
+### Audit Dependencies Across Monorepo
 
 ```bash
 fjsf find package.json
 # Type: "react"
-# Shows:
-# dependencies.react:[workspace-a] ^18.2.0
-# dependencies.react:[workspace-b] ^18.0.0
-# devDependencies.react:[workspace-c] ^17.0.2
-# peerDependencies.react:[shared-ui] ^18.0.0
+# Shows: dependencies.react:[workspace-a] ^18.2.0
+#        dependencies.react:[workspace-b] ^18.0.0
+#        devDependencies.react:[workspace-c] ^17.0.2
 ```
 
-### Configuration Consistency Check
-
-Find TypeScript compiler settings across all packages:
+### Check Configuration Consistency
 
 ```bash
 fjsf find tsconfig.json
 # Type: "target"
-# Shows:
-# compilerOptions.target:[packages/api] ES2020
-# compilerOptions.target:[packages/web] ES2022
-# compilerOptions.target:[packages/cli] ES2018
+# Shows: compilerOptions.target:[packages/api] ES2020
+#        compilerOptions.target:[packages/web] ES2022
 ```
 
-### Script Discovery Across Workspaces
-
-Find all test scripts in a monorepo:
+### Discover Scripts Across Workspaces
 
 ```bash
 fjsf find package.json
 # Type: "scripts.test"
-# Shows:
-# scripts.test:[workspace-a] jest
-# scripts.test:[workspace-b] vitest
-# scripts.test:[workspace-c] bun test
+# Shows: scripts.test:[workspace-a] jest
+#        scripts.test:[workspace-b] vitest
 ```
 
-### Find Missing Dependencies
-
-Check if all packages have the same dev tool:
-
-```bash
-fjsf find package.json
-# Type: "prettier"
-# Shows which packages have it, reveals which don't
-```
-
-### Quick Config Value Lookup
-
-Check a specific setting without opening files:
+### Query Specific Config File
 
 ```bash
 fjsf path ./tsconfig.json
@@ -163,217 +161,38 @@ fjsf path ./tsconfig.json
 # Shows: compilerOptions.strict: true
 ```
 
-## Usage
-
-### Scripts Mode (Default)
-
-Search and execute npm scripts from package.json:
+### Execute Script Directly
 
 ```bash
-fjsf                    # Search all package.json scripts
-fjsf <package.json>     # Search specific package.json file
+fjsf exec package.json scripts.build    # Run build script
+fjsf e package.json scripts.test        # Run test (short form)
 ```
 
-### Find Mode
-
-Find all versions of a file across your repo and fuzzy search their JSON:
+## Command Reference
 
 ```bash
-fjsf find <filename>    # Find all files with this name
+# Scripts mode (default)
+fjsf [file]             # Search & execute scripts
+
+# Find mode - search all files with name
+fjsf find <filename>    # fjsf find package.json
 fjsf f <filename>       # Short form
-```
 
-Examples:
-
-```bash
-fjsf find package.json    # Find all package.json files, search their contents
-fjsf f tsconfig.json      # Find all tsconfig.json files
-fjsf find .eslintrc.json  # Find all .eslintrc.json files
-```
-
-This will:
-
-1. Find ALL files matching the name across your repo (including workspaces)
-2. Flatten all their JSON into dot-notation paths
-3. Let you fuzzy search across ALL fields from ALL found files
-4. Show which file/workspace each result comes from
-
-Search examples once in find mode:
-
-- Type `react` - View all React dependencies across all package.json files
-- Type `version` - Check versions across workspaces
-- Type `compilerOptions.target` - See all TS targets in tsconfigs
-- Type `scripts.test` - Find all test scripts
-
-### Path Mode
-
-Query a specific JSON file (single file):
-
-```bash
-fjsf path <file>        # Query a specific JSON file
+# Path mode - query single file
+fjsf path <file>        # fjsf path ./tsconfig.json
 fjsf p <file>           # Short form
+
+# Exec mode - run script directly
+fjsf exec <file> <key>  # fjsf exec package.json scripts.dev
+fjsf e <file> <key>     # Short form
+
+# Shell integration
+fjsf init               # Setup Tab completion
+fjsf init --mode=native # For fzf-tab users
+
+# Keyboard controls
+# Type to search (fuzzy), ↑/↓ to navigate, Enter to execute, q/Esc/Ctrl+C to quit
 ```
-
-Examples:
-
-```bash
-fjsf path ./tsconfig.json       # Query single tsconfig.json
-fjsf p ./package.json           # Query single package.json
-fjsf path ./config/app.json     # Query any JSON file
-```
-
-This mode:
-
-1. Loads ONE specific JSON file
-2. Flattens it into dot-notation paths
-3. Provides fuzzy search across all fields in that file
-
-### Exec Mode
-
-Execute a specific key from a JSON file:
-
-```bash
-fjsf exec <file> <key>     # Execute a key (scripts only)
-fjsf e <file> <key>        # Short form
-```
-
-Examples:
-
-```bash
-fjsf exec package.json scripts.build    # Run the build script
-fjsf e package.json scripts.test        # Run the test script
-fjsf e package.json scripts.dev         # Run the dev script
-```
-
-Note: Can only execute keys that start with `scripts.` and have string values.
-
-### Shell Integration
-
-Never need to ask, "what was that npm script again?" again!
-
-```bash
-fjsf init
-```
-
-After setup, restart your shell. Now the magic happens:
-
-```bash
-npm run <TAB>       # Interactive tooltip appears!
-                    # Shows: test, build, dev, lint...
-                    # Type to filter, arrow keys to navigate, Enter to run
-
-npm run t<TAB>      # Shows: test, test:watch, typecheck...
-pnpm run bui<TAB>   # Shows: build, build:prod, build:dev...
-yarn run d<TAB>     # Shows: dev, deploy, docs...
-bun run li<TAB>     # Shows: lint, lint:fix...
-```
-
-**How it works:**
-
-`fjsf init` creates a `~/.fjsf/` directory with shell-specific integration files and adds a single source line to your shell config (`.zshrc`, `.bashrc`, or `.config/fish/config.fish`).
-
-- Type `npm run` (or pnpm/yarn/bun) followed by optional partial script name
-- Press **Tab** to trigger the interactive tooltip
-- The tooltip appears right at your cursor showing fuzzy-matched scripts
-- Your partial input becomes the fuzzy search query
-- Arrow up/down to navigate matches
-- Press Enter to execute the selected script
-- The same fjsf interface you know, but inline in your terminal
-
-**Using with fzf-tab:**
-
-If you use [fzf-tab](https://github.com/Aloxaf/fzf-tab) or other completion enhancers, use native mode:
-
-```bash
-fjsf init --mode=native
-```
-
-Native mode integrates with your shell's completion system instead of hijacking Tab, allowing fzf-tab to display completions with its fuzzy finder UI.
-
-**Clean uninstall:**
-
-```bash
-rm -rf ~/.fjsf
-# Then remove the "# fjsf" and source line from your shell config
-```
-
-**Why this is awesome:**
-
-- No context switching - stays in your terminal flow
-- Fuzzy matching means `npm run t` finds `test`, `typecheck`, `test:watch`
-- Works across all package managers (npm, pnpm, yarn, bun)
-- Shows workspace info in monorepos
-- Zero dependencies, instant performance
-
-Supports: bash, zsh, fish
-
-**Customizing the key binding:**
-
-If Tab conflicts with other completions (like bun's native completions), you can change the key binding. After running `fjsf init`, edit the integration file in `~/.fjsf/`:
-
-**Zsh** (`~/.fjsf/init.zsh`):
-
-```bash
-bindkey '^I' _fjsf_widget      # Change to your preferred key
-# Examples: '^F' (Ctrl+F), '^G' (Ctrl+G)
-```
-
-**Bash** (`~/.fjsf/init.bash`):
-
-```bash
-bind -x '"\\C-i": _fjsf_complete'   # Change to your preferred key
-# Examples: '"\\C-f"' (Ctrl+F), '"\\C-g"' (Ctrl+G)
-```
-
-**Fish** (`~/.fjsf/init.fish`):
-
-```bash
-bind \t _fjsf_widget      # Change to your preferred key
-# Examples: \cf (Ctrl+F), \cg (Ctrl+G)
-```
-
-Common key bindings: `^I`/`\t` (Tab), `^F`/`\cf` (Ctrl+F), `^G`/`\cg` (Ctrl+G)
-
-### Help & Quit
-
-```bash
-fjsf help               # Show help
-fjsf h                  # Short form
-fjsf quit               # Exit gracefully
-fjsf q                  # Short form
-```
-
-### Keyboard Controls
-
-- Type to search (fuzzy matching)
-- `↑/↓` - Navigate through results
-- `Enter` - Execute selected script (scripts mode only)
-- `q`, `Esc` or `Ctrl+C` - Exit
-
-## Modes
-
-**Scripts Mode:**
-
-1. Discovers all `package.json` files in your repository
-2. Extracts scripts from each package
-3. Detects your package manager (bun, pnpm, yarn, or npm)
-4. Provides fuzzy search across script names and workspaces
-5. Executes scripts with the correct package manager command
-
-**Find Mode:**
-
-1. Searches your repository for all files matching the given filename
-2. Flattens all found JSON files into searchable dot-notation paths
-3. Caches JSON with mtime validation for fast subsequent searches
-4. Provides fuzzy search across paths, keys, and values from ALL found files
-5. Shows which file/workspace each entry belongs to
-
-**Exec Mode:**
-
-1. Reads the specified JSON file
-2. Navigates to the specified key using dot notation
-3. Validates the key is a script (starts with `scripts.`)
-4. Executes the script with the appropriate package manager
 
 ## Installation
 
