@@ -14,7 +14,7 @@ A zero-dependency CLI tool for fuzzy searching and executing scripts within json
 
 ## Why fjsf?
 
-**Stop typing full script names.** Run `fjsf init` once, then just type `npm run <TAB>` and get an interactive tooltip with all your scripts. That's it. 
+**Stop typing full script names.** Run `fjsf init` once, then just type `npm run <TAB>` and get an interactive tooltip with all your scripts. That's it.
 
 No more:
 
