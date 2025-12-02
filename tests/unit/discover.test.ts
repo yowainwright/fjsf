@@ -185,4 +185,72 @@ describe("discoverScripts", () => {
     const result = discoverScripts("/dev/null");
     expect(result).toEqual([]);
   });
+
+  it("discovers scripts from specific JSON file", () => {
+    const packageJson = {
+      name: "specific-package",
+      scripts: {
+        test: "bun test",
+        build: "bun build",
+      },
+    };
+
+    writeFileSync(join(TEST_DIR, "package.json"), JSON.stringify(packageJson));
+
+    // Test with specific file path (relative to current directory)
+    const scripts = discoverScripts(join(TEST_DIR, "package.json"));
+    expect(scripts).toHaveLength(2);
+    expect(scripts[0]?.name).toBe("test");
+    expect(scripts[0]?.workspace).toBe("specific-package");
+  });
+
+  it("returns empty array for non-existent JSON file", () => {
+    const scripts = discoverScripts("nonexistent.json");
+    expect(scripts).toEqual([]);
+  });
+
+  it("handles direct workspace pattern (without glob)", () => {
+    const rootPackage = {
+      name: "monorepo",
+      workspaces: ["packages/core"],
+      scripts: {
+        root: "echo root",
+      },
+    };
+
+    const corePackage = {
+      name: "core",
+      scripts: {
+        build: "tsc",
+      },
+    };
+
+    writeFileSync(join(TEST_DIR, "package.json"), JSON.stringify(rootPackage));
+    mkdirSync(join(TEST_DIR, "packages", "core"), { recursive: true });
+    writeFileSync(
+      join(TEST_DIR, "packages", "core", "package.json"),
+      JSON.stringify(corePackage),
+    );
+
+    const scripts = discoverScripts(TEST_DIR);
+    expect(scripts).toHaveLength(2);
+    expect(scripts.some((s) => s.workspace === "core")).toBe(true);
+  });
+
+  it("handles non-existent workspace directory gracefully", () => {
+    const rootPackage = {
+      name: "monorepo",
+      workspaces: ["packages/*"],
+      scripts: {
+        root: "echo root",
+      },
+    };
+
+    writeFileSync(join(TEST_DIR, "package.json"), JSON.stringify(rootPackage));
+    // packages directory doesn't exist
+
+    const scripts = discoverScripts(TEST_DIR);
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]?.workspace).toBe("monorepo");
+  });
 });

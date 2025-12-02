@@ -11,7 +11,10 @@ import { join, dirname } from "path";
 import { colors, colorize } from "./terminal.ts";
 import { spawnSync } from "child_process";
 
-const getShellScriptPath = (shell: string, scriptType: string): string => {
+export const getShellScriptPath = (
+  shell: string,
+  scriptType: string,
+): string => {
   const currentDir = dirname(new URL(import.meta.url).pathname);
   return join(
     currentDir,
@@ -71,7 +74,7 @@ export const getShellConfigFile = (shell: string): string => {
   return "";
 };
 
-const getShellIntegrationFile = (shell: string): string => {
+export const getShellIntegrationFile = (shell: string): string => {
   const fjsfDir = getFjsfDir();
   return join(fjsfDir, `init.${shell}`);
 };

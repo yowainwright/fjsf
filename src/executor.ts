@@ -16,13 +16,13 @@ import {
 import type { PackageScript } from "./types.ts";
 import type { ModeConfig } from "./modes.ts";
 
-const isRootScript = (script: PackageScript): boolean => {
+export const isRootScript = (script: PackageScript): boolean => {
   const isRoot = script.workspace === "root";
   const isPackageJson = script.packagePath === "package.json";
   return isRoot || isPackageJson;
 };
 
-const buildCommand = (script: PackageScript, cwd: string): string => {
+export const buildCommand = (script: PackageScript, cwd: string): string => {
   const packageManager = detectPackageManager(cwd);
 
   const shouldUseRootCommand = isRootScript(script);
@@ -89,7 +89,7 @@ export const executeScript = async (script: PackageScript): Promise<void> => {
   process.exit(exitCode);
 };
 
-const getNestedValue = (obj: any, path: string): any => {
+export const getNestedValue = (obj: any, path: string): any => {
   const keys = path.split(".");
   let current = obj;
 
