@@ -9,10 +9,17 @@ import {
 import { homedir } from "os";
 import { join } from "path";
 import { tmpdir } from "os";
+import {
+  getFjsfDir,
+  detectShell,
+  getShellConfigFile,
+  getShellScriptPath,
+  getShellIntegrationFile,
+  removeOldFjsfConfig,
+} from "../../src/init.ts";
 
 describe("init shell integration", () => {
   it("getFjsfDir creates and returns directory", () => {
-    const { getFjsfDir } = require("../../src/init.ts");
     const fjsfDir = getFjsfDir();
 
     expect(fjsfDir).toContain(".fjsf");
@@ -20,14 +27,12 @@ describe("init shell integration", () => {
   });
 
   it("detectShell identifies current shell", () => {
-    const { detectShell } = require("../../src/init.ts");
     const shell = detectShell();
 
     expect(["zsh", "bash", "fish", "unknown"]).toContain(shell);
   });
 
   it("getShellConfigFile returns correct paths for each shell", () => {
-    const { getShellConfigFile } = require("../../src/init.ts");
     const home = homedir();
 
     const zshConfig = getShellConfigFile("zsh");
@@ -45,6 +50,65 @@ describe("init shell integration", () => {
 
     const unknownConfig = getShellConfigFile("unknown");
     expect(unknownConfig).toBe("");
+  });
+
+  describe("getShellScriptPath", () => {
+    it("returns correct path for zsh widget", () => {
+      const path = getShellScriptPath("zsh", "widget");
+      expect(path).toContain("shell-integrations");
+      expect(path).toContain("zsh");
+      expect(path).toEndWith("widget.zsh");
+    });
+
+    it("returns correct path for bash widget", () => {
+      const path = getShellScriptPath("bash", "widget");
+      expect(path).toContain("shell-integrations");
+      expect(path).toContain("bash");
+      expect(path).toEndWith("widget.bash");
+    });
+
+    it("returns correct path for fish widget", () => {
+      const path = getShellScriptPath("fish", "widget");
+      expect(path).toContain("shell-integrations");
+      expect(path).toContain("fish");
+      expect(path).toEndWith("widget.fish");
+    });
+
+    it("returns correct path for zsh native", () => {
+      const path = getShellScriptPath("zsh", "native");
+      expect(path).toEndWith("native.zsh");
+    });
+
+    it("returns correct path for completions", () => {
+      const zshPath = getShellScriptPath("zsh", "completions");
+      expect(zshPath).toEndWith("completions.zsh");
+
+      const bashPath = getShellScriptPath("bash", "completions");
+      expect(bashPath).toEndWith("completions.bash");
+
+      const fishPath = getShellScriptPath("fish", "completions");
+      expect(fishPath).toEndWith("completions.fish");
+    });
+  });
+
+  describe("getShellIntegrationFile", () => {
+    it("returns path in .fjsf directory for zsh", () => {
+      const path = getShellIntegrationFile("zsh");
+      expect(path).toContain(".fjsf");
+      expect(path).toEndWith("init.zsh");
+    });
+
+    it("returns path in .fjsf directory for bash", () => {
+      const path = getShellIntegrationFile("bash");
+      expect(path).toContain(".fjsf");
+      expect(path).toEndWith("init.bash");
+    });
+
+    it("returns path in .fjsf directory for fish", () => {
+      const path = getShellIntegrationFile("fish");
+      expect(path).toContain(".fjsf");
+      expect(path).toEndWith("init.fish");
+    });
   });
 
   it("detects shell config files", () => {
@@ -268,7 +332,6 @@ describe("removeOldFjsfConfig", () => {
   });
 
   it("handles non-existent files gracefully", () => {
-    const { removeOldFjsfConfig } = require("../../src/init.ts");
     const nonExistentFile = "/tmp/nonexistent-fjsf-test-file.sh";
 
     expect(() => removeOldFjsfConfig(nonExistentFile)).not.toThrow();
@@ -291,7 +354,6 @@ alias ll="ls -la"`;
 
     writeFileSync(testFile, content);
 
-    const { removeOldFjsfConfig } = require("../../src/init.ts");
     removeOldFjsfConfig(testFile);
 
     const result = readFileSync(testFile, "utf-8");
@@ -326,7 +388,6 @@ alias ll="ls -la"`;
 
     writeFileSync(testFile, content);
 
-    const { removeOldFjsfConfig } = require("../../src/init.ts");
     removeOldFjsfConfig(testFile);
 
     const result = readFileSync(testFile, "utf-8");
@@ -344,7 +405,6 @@ alias ll="ls -la"`;
 
     writeFileSync(testFile, content);
 
-    const { removeOldFjsfConfig } = require("../../src/init.ts");
     removeOldFjsfConfig(testFile);
 
     const result = readFileSync(testFile, "utf-8");
@@ -366,7 +426,6 @@ function myfunction() {
 
     writeFileSync(testFile, content);
 
-    const { removeOldFjsfConfig } = require("../../src/init.ts");
     removeOldFjsfConfig(testFile);
 
     const result = readFileSync(testFile, "utf-8");
@@ -383,7 +442,6 @@ alias ll="ls -la"`;
 
     writeFileSync(testFile, content);
 
-    const { removeOldFjsfConfig } = require("../../src/init.ts");
     removeOldFjsfConfig(testFile);
 
     const result = readFileSync(testFile, "utf-8");
@@ -408,7 +466,6 @@ alias ll="ls -la"`;
 
     writeFileSync(testFile, content);
 
-    const { removeOldFjsfConfig } = require("../../src/init.ts");
     removeOldFjsfConfig(testFile);
 
     const result = readFileSync(testFile, "utf-8");

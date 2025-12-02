@@ -84,6 +84,23 @@ describe("cache", () => {
       const result = readJsonWithCache(join(TEST_DIR, "nonexistent.json"));
       expect(result).toBeNull();
     });
+
+    it("removes cached entry when file becomes invalid", () => {
+      const filePath = join(TEST_DIR, "test.json");
+      const data = { name: "test" };
+
+      // First, create and cache valid JSON
+      writeFileSync(filePath, JSON.stringify(data));
+      readJsonWithCache(filePath);
+      expect(getCacheSize()).toBe(1);
+
+      // Now delete the file and try to read again
+      rmSync(filePath);
+      const result = readJsonWithCache(filePath);
+
+      expect(result).toBeNull();
+      expect(getCacheSize()).toBe(0);
+    });
   });
 
   describe("clearCache", () => {
