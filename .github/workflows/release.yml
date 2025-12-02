@@ -9,19 +9,17 @@ permissions:
   contents: write
 
 jobs:
-  # Build lightweight QuickJS binaries (recommended for most users)
-  build-qjs-binaries:
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            artifact: fjsf-qjs-linux-x64
-          - os: macos-13
-            artifact: fjsf-qjs-darwin-x64
           - os: macos-latest
             artifact: fjsf-qjs-darwin-arm64
-
+          - os: macos-13
+            artifact: fjsf-qjs-darwin-x64
+          - os: ubuntu-latest
+            artifact: fjsf-qjs-linux-x64
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,6 +29,10 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install QuickJS (macOS)
+        if: runner.os == 'macOS'
+        run: brew install quickjs
+
       - name: Install QuickJS (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -38,10 +40,6 @@ jobs:
           cd /tmp/quickjs
           make -j$(nproc)
           sudo make install
-
-      - name: Install QuickJS (macOS)
-        if: runner.os == 'macOS'
-        run: brew install quickjs
 
       - name: Install dependencies
         run: bun install
@@ -57,7 +55,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           sed -i.bak "s/__VERSION__/$VERSION/g" dist/qjs/constants.js && rm dist/qjs/constants.js.bak
 
-      - name: Compile QuickJS binary
+      - name: Build QuickJS binary
         run: qjsc -m -o ./dist/${{ matrix.artifact }} dist/qjs/cli.js
 
       - name: Upload artifact
@@ -66,140 +64,72 @@ jobs:
           name: ${{ matrix.artifact }}
           path: ./dist/${{ matrix.artifact }}
 
-  # Build Bun binaries (larger, includes Bun runtime)
-  build-bun-binaries:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: bun-linux-x64
-            artifact: fjsf-bun-linux-x64
-          - os: macos-latest
-            target: bun-darwin-x64
-            artifact: fjsf-bun-darwin-x64
-          - os: macos-latest
-            target: bun-darwin-arm64
-            artifact: fjsf-bun-darwin-arm64
-          - os: windows-latest
-            target: bun-windows-x64
-            artifact: fjsf-bun-windows-x64.exe
-
+  release:
+    needs: build
+    runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          token: ${{ secrets.PR_CREATE_TOKEN }}
 
-      - name: Install dependencies
-        run: bun install
-
-      - name: Build binary
-        run: bun build src/cli.ts --compile --target=${{ matrix.target }} --outfile ./dist/${{ matrix.artifact }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}
-          path: ./dist/${{ matrix.artifact }}
-
-  create-release:
-    needs: [build-qjs-binaries, build-bun-binaries]
-    runs-on: ubuntu-latest
-    outputs:
-      sha256_arm64: ${{ steps.checksums.outputs.sha256_arm64 }}
-      sha256_x64: ${{ steps.checksums.outputs.sha256_x64 }}
-      sha256_linux: ${{ steps.checksums.outputs.sha256_linux }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./dist
 
-      - name: Display structure
-        run: ls -R ./dist
-
-      - name: Calculate checksums
-        id: checksums
+      - name: Flatten artifacts
         run: |
-          echo "sha256_arm64=$(shasum -a 256 ./dist/fjsf-qjs-darwin-arm64/fjsf-qjs-darwin-arm64 | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
-          echo "sha256_x64=$(shasum -a 256 ./dist/fjsf-qjs-darwin-x64/fjsf-qjs-darwin-x64 | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
-          echo "sha256_linux=$(shasum -a 256 ./dist/fjsf-qjs-linux-x64/fjsf-qjs-linux-x64 | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
+          mv ./dist/fjsf-qjs-darwin-arm64/fjsf-qjs-darwin-arm64 ./dist/
+          mv ./dist/fjsf-qjs-darwin-x64/fjsf-qjs-darwin-x64 ./dist/
+          mv ./dist/fjsf-qjs-linux-x64/fjsf-qjs-linux-x64 ./dist/
+          rm -rf ./dist/fjsf-qjs-darwin-arm64/ ./dist/fjsf-qjs-darwin-x64/ ./dist/fjsf-qjs-linux-x64/
+
+      - name: Calculate checksums and update formula
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          SHA_ARM64=$(shasum -a 256 ./dist/fjsf-qjs-darwin-arm64 | cut -d ' ' -f 1)
+          SHA_X64=$(shasum -a 256 ./dist/fjsf-qjs-darwin-x64 | cut -d ' ' -f 1)
+          SHA_LINUX=$(shasum -a 256 ./dist/fjsf-qjs-linux-x64 | cut -d ' ' -f 1)
+
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Formula/fjsf.rb
+          sed -i '' "s/sha256 \".*\" # arm64/sha256 \"${SHA_ARM64}\" # arm64/" Formula/fjsf.rb
+          sed -i '' "s/sha256 \".*\" # x64/sha256 \"${SHA_X64}\" # x64/" Formula/fjsf.rb
+          sed -i '' "s/sha256 \".*\" # linux/sha256 \"${SHA_LINUX}\" # linux/" Formula/fjsf.rb
+
+      - name: Commit formula update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/fjsf.rb
+          git commit -m "chore: update Homebrew formula for ${{ github.ref_name }}" || echo "No changes"
+          git push origin HEAD:main
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ./dist/fjsf-qjs-linux-x64/fjsf-qjs-linux-x64
-            ./dist/fjsf-qjs-darwin-x64/fjsf-qjs-darwin-x64
-            ./dist/fjsf-qjs-darwin-arm64/fjsf-qjs-darwin-arm64
-            ./dist/fjsf-bun-linux-x64/fjsf-bun-linux-x64
-            ./dist/fjsf-bun-darwin-x64/fjsf-bun-darwin-x64
-            ./dist/fjsf-bun-darwin-arm64/fjsf-bun-darwin-arm64
-            ./dist/fjsf-bun-windows-x64.exe/fjsf-bun-windows-x64.exe
+            ./dist/fjsf-qjs-darwin-arm64
+            ./dist/fjsf-qjs-darwin-x64
+            ./dist/fjsf-qjs-linux-x64
           generate_release_notes: true
           body: |
-            ## Binary Downloads
+            ## Install
 
-            ### QuickJS Binaries (Recommended - ~750KB)
-            Lightweight, fast-starting native binaries:
-            - `fjsf-qjs-darwin-arm64` - macOS Apple Silicon
-            - `fjsf-qjs-darwin-x64` - macOS Intel
-            - `fjsf-qjs-linux-x64` - Linux x64
-
-            ### Bun Binaries (~50MB)
-            Full-featured binaries with Bun runtime:
-            - `fjsf-bun-darwin-arm64` - macOS Apple Silicon
-            - `fjsf-bun-darwin-x64` - macOS Intel
-            - `fjsf-bun-linux-x64` - Linux x64
-            - `fjsf-bun-windows-x64.exe` - Windows x64
-
-            ### Install via Homebrew
+            ### Homebrew (macOS/Linux)
             ```bash
             brew install yowainwright/fjsf/fjsf
             ```
 
-            ### Install via npm/bun
+            ### npm/bun
             ```bash
             npm install -g fjsf
-            # or
-            bun install -g fjsf
             ```
+
+            ### Binary Downloads (~750KB)
+            - `fjsf-qjs-darwin-arm64` - macOS Apple Silicon
+            - `fjsf-qjs-darwin-x64` - macOS Intel
+            - `fjsf-qjs-linux-x64` - Linux x64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  update-formula:
-    needs: create-release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Update formula with checksums
-        run: |
-          VERSION="${{ github.ref_name }}"
-          VERSION="${VERSION#v}"
-
-          sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/fjsf.rb
-          sed -i "0,/sha256 \".*\"/s//sha256 \"${{ needs.create-release.outputs.sha256_arm64 }}\"/" Formula/fjsf.rb
-          sed -i "0,/sha256 \".*\"/s//sha256 \"${{ needs.create-release.outputs.sha256_x64 }}\"/" Formula/fjsf.rb
-          sed -i "0,/sha256 \".*\"/s//sha256 \"${{ needs.create-release.outputs.sha256_linux }}\"/" Formula/fjsf.rb
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.PR_CREATE_TOKEN }}
-          commit-message: "chore: update Homebrew formula for ${{ github.ref_name }}"
-          title: "chore: update Homebrew formula for ${{ github.ref_name }}"
-          body: "Automated PR to update Homebrew formula checksums for release ${{ github.ref_name }}"
-          branch: update-formula-${{ github.ref_name }}
-          delete-branch: true
-          labels: automerge

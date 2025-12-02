@@ -1,22 +1,22 @@
 class Fjsf < Formula
   desc "CLI tool for fuzzy searching npm scripts and JSON files"
   homepage "https://github.com/yowainwright/fjsf"
-  version "0.2.0"
+  version "0.2.2"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/yowainwright/fjsf/releases/download/v#{version}/fjsf-qjs-darwin-arm64"
-      sha256 "UPDATE_AFTER_FIRST_RELEASE"
+      sha256 "0000000000000000000000000000000000000000000000000000000000000000" # arm64
     else
       url "https://github.com/yowainwright/fjsf/releases/download/v#{version}/fjsf-qjs-darwin-x64"
-      sha256 "UPDATE_AFTER_FIRST_RELEASE"
+      sha256 "0000000000000000000000000000000000000000000000000000000000000000" # x64
     end
   end
 
   on_linux do
     url "https://github.com/yowainwright/fjsf/releases/download/v#{version}/fjsf-qjs-linux-x64"
-    sha256 "UPDATE_AFTER_FIRST_RELEASE"
+    sha256 "0000000000000000000000000000000000000000000000000000000000000000" # linux
   end
 
   def install
