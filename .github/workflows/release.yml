@@ -196,9 +196,10 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PR_CREATE_TOKEN }}
           commit-message: "chore: update Homebrew formula for ${{ github.ref_name }}"
           title: "chore: update Homebrew formula for ${{ github.ref_name }}"
           body: "Automated PR to update Homebrew formula checksums for release ${{ github.ref_name }}"
           branch: update-formula-${{ github.ref_name }}
           delete-branch: true
+          labels: automerge
