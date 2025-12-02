@@ -193,10 +193,12 @@ jobs:
           sed -i "0,/sha256 \".*\"/s//sha256 \"${{ needs.create-release.outputs.sha256_x64 }}\"/" Formula/fjsf.rb
           sed -i "0,/sha256 \".*\"/s//sha256 \"${{ needs.create-release.outputs.sha256_linux }}\"/" Formula/fjsf.rb
 
-      - name: Commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/fjsf.rb
-          git commit -m "chore: update Homebrew formula for ${{ github.ref_name }}" || echo "No changes to commit"
-          git push
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update Homebrew formula for ${{ github.ref_name }}"
+          title: "chore: update Homebrew formula for ${{ github.ref_name }}"
+          body: "Automated PR to update Homebrew formula checksums for release ${{ github.ref_name }}"
+          branch: update-formula-${{ github.ref_name }}
+          delete-branch: true
