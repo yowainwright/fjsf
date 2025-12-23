@@ -112,7 +112,7 @@ bun run bui<TAB>
 
 Works with npm, pnpm, yarn, and bun. Press Tab to search, arrow keys to navigate, Enter to run.
 
-**Using with fzf-tab?** Run `fjsf init --mode=native` instead.
+**Using with fzf-tab?** Run `fjsf init --native` instead.
 
 **Customize key binding:** Edit `~/.fjsf/init.{zsh,bash,fish}` and change the bindkey (default is Tab/`^I`).
 
@@ -188,7 +188,7 @@ fjsf e <file> <key>     # Short form
 
 # Shell integration
 fjsf init               # Setup Tab completion
-fjsf init --mode=native # For fzf-tab users
+fjsf init --native      # For fzf-tab users
 
 # Keyboard controls
 # Type to search (fuzzy), ↑/↓ to navigate, Enter to execute, q/Esc/Ctrl+C to quit

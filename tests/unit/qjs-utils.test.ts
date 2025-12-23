@@ -231,6 +231,7 @@ const KEY_CODES = {
   ENTER_LF: 13,
   ESCAPE: 27,
   BRACKET: 91,
+  BRACKET_APP: 79,
   ARROW_UP: 65,
   ARROW_DOWN: 66,
   Q: 113,
@@ -249,8 +250,70 @@ const isExitKey = (byte0: number, key: Uint8Array): boolean => {
 const isEnterKey = (byte0: number): boolean =>
   byte0 === KEY_CODES.ENTER_CR || byte0 === KEY_CODES.ENTER_LF;
 
-const isArrowSequence = (byte0: number, key: Uint8Array): boolean =>
-  byte0 === KEY_CODES.ESCAPE && key.length >= 3 && key[1] === KEY_CODES.BRACKET;
+const isArrowSequence = (byte0: number, key: Uint8Array): boolean => {
+  const isEscape = byte0 === KEY_CODES.ESCAPE;
+  const hasEnoughBytes = key.length >= 3;
+  const isNormalMode = key[1] === KEY_CODES.BRACKET;
+  const isAppMode = key[1] === KEY_CODES.BRACKET_APP;
+  return isEscape && hasEnoughBytes && (isNormalMode || isAppMode);
+};
+
+const isWidgetArg = (arg: string): boolean => ["--widget", "-w"].includes(arg);
+
+const isHighSurrogate = (code: number): boolean =>
+  code >= 0xd800 && code < 0xdc00;
+
+const isLowSurrogate = (code: number): boolean =>
+  code >= 0xdc00 && code < 0xe000;
+
+const decodeSurrogatePair = (high: number, low: number): number =>
+  ((high - 0xd800) << 10) + (low - 0xdc00) + 0x10000;
+
+const encodeOneByteChar = (code: number): number[] => [code];
+
+const encodeTwoByteChar = (code: number): number[] => [
+  0xc0 | (code >> 6),
+  0x80 | (code & 0x3f),
+];
+
+const encodeThreeByteChar = (code: number): number[] => [
+  0xe0 | (code >> 12),
+  0x80 | ((code >> 6) & 0x3f),
+  0x80 | (code & 0x3f),
+];
+
+const encodeFourByteChar = (code: number): number[] => [
+  0xf0 | (code >> 18),
+  0x80 | ((code >> 12) & 0x3f),
+  0x80 | ((code >> 6) & 0x3f),
+  0x80 | (code & 0x3f),
+];
+
+const stringToUtf8 = (str: string): Uint8Array => {
+  const bytes: number[] = [];
+  let i = 0;
+
+  while (i < str.length) {
+    const code = str.charCodeAt(i);
+    const nextCode = str.charCodeAt(i + 1);
+    const isSurrogatePair = isHighSurrogate(code) && isLowSurrogate(nextCode);
+
+    if (code < 0x80) {
+      bytes.push(...encodeOneByteChar(code));
+    } else if (code < 0x800) {
+      bytes.push(...encodeTwoByteChar(code));
+    } else if (isSurrogatePair) {
+      bytes.push(...encodeFourByteChar(decodeSurrogatePair(code, nextCode)));
+      i++;
+    } else {
+      bytes.push(...encodeThreeByteChar(code));
+    }
+
+    i++;
+  }
+
+  return new Uint8Array(bytes);
+};
 
 const isBackspaceKey = (byte0: number): boolean =>
   byte0 === KEY_CODES.DELETE || byte0 === KEY_CODES.BACKSPACE;
@@ -950,5 +1013,319 @@ describe("KEY_CODES constants", () => {
     expect(KEY_CODES.DELETE).toBe(127);
     expect(KEY_CODES.PRINTABLE_START).toBe(32);
     expect(KEY_CODES.PRINTABLE_END).toBe(127);
+  });
+});
+
+describe("UTF-8 encoding utilities", () => {
+  describe("isHighSurrogate", () => {
+    it("returns true for high surrogates (0xD800-0xDBFF)", () => {
+      expect(isHighSurrogate(0xd800)).toBe(true);
+      expect(isHighSurrogate(0xdbff)).toBe(true);
+    });
+
+    it("returns false for non-surrogates", () => {
+      expect(isHighSurrogate(0xd7ff)).toBe(false);
+      expect(isHighSurrogate(0xdc00)).toBe(false);
+      expect(isHighSurrogate(65)).toBe(false);
+    });
+  });
+
+  describe("isLowSurrogate", () => {
+    it("returns true for low surrogates (0xDC00-0xDFFF)", () => {
+      expect(isLowSurrogate(0xdc00)).toBe(true);
+      expect(isLowSurrogate(0xdfff)).toBe(true);
+    });
+
+    it("returns false for non-surrogates", () => {
+      expect(isLowSurrogate(0xdbff)).toBe(false);
+      expect(isLowSurrogate(0xe000)).toBe(false);
+      expect(isLowSurrogate(65)).toBe(false);
+    });
+  });
+
+  describe("decodeSurrogatePair", () => {
+    it("decodes emoji surrogate pair", () => {
+      const result = decodeSurrogatePair(0xd83d, 0xde00);
+      expect(result).toBe(0x1f600);
+    });
+
+    it("decodes first valid code point", () => {
+      const result = decodeSurrogatePair(0xd800, 0xdc00);
+      expect(result).toBe(0x10000);
+    });
+  });
+
+  describe("encodeOneByteChar", () => {
+    it("encodes ASCII character", () => {
+      expect(encodeOneByteChar(65)).toEqual([65]);
+      expect(encodeOneByteChar(0)).toEqual([0]);
+      expect(encodeOneByteChar(127)).toEqual([127]);
+    });
+  });
+
+  describe("encodeTwoByteChar", () => {
+    it("encodes two-byte character", () => {
+      expect(encodeTwoByteChar(0x80)).toEqual([0xc2, 0x80]);
+      expect(encodeTwoByteChar(0x7ff)).toEqual([0xdf, 0xbf]);
+    });
+  });
+
+  describe("encodeThreeByteChar", () => {
+    it("encodes three-byte character", () => {
+      expect(encodeThreeByteChar(0x800)).toEqual([0xe0, 0xa0, 0x80]);
+      expect(encodeThreeByteChar(0xffff)).toEqual([0xef, 0xbf, 0xbf]);
+    });
+  });
+
+  describe("encodeFourByteChar", () => {
+    it("encodes four-byte character (emoji)", () => {
+      expect(encodeFourByteChar(0x1f600)).toEqual([0xf0, 0x9f, 0x98, 0x80]);
+    });
+
+    it("encodes first four-byte code point", () => {
+      expect(encodeFourByteChar(0x10000)).toEqual([0xf0, 0x90, 0x80, 0x80]);
+    });
+  });
+
+  describe("stringToUtf8", () => {
+    it("encodes ASCII string", () => {
+      const result = stringToUtf8("hello");
+      expect(result).toEqual(new Uint8Array([104, 101, 108, 108, 111]));
+    });
+
+    it("encodes empty string", () => {
+      const result = stringToUtf8("");
+      expect(result).toEqual(new Uint8Array([]));
+    });
+
+    it("encodes two-byte characters", () => {
+      const result = stringToUtf8("é");
+      expect(result).toEqual(new Uint8Array([0xc3, 0xa9]));
+    });
+
+    it("encodes three-byte characters", () => {
+      const result = stringToUtf8("中");
+      expect(result).toEqual(new Uint8Array([0xe4, 0xb8, 0xad]));
+    });
+
+    it("encodes four-byte characters (emoji)", () => {
+      const result = stringToUtf8("😀");
+      expect(result).toEqual(new Uint8Array([0xf0, 0x9f, 0x98, 0x80]));
+    });
+
+    it("encodes mixed ASCII and multi-byte", () => {
+      const result = stringToUtf8("a中b");
+      expect(result).toEqual(new Uint8Array([97, 0xe4, 0xb8, 0xad, 98]));
+    });
+
+    it("matches TextEncoder output", () => {
+      const encoder = new TextEncoder();
+      const testStrings = ["hello", "中文", "emoji 😀", "café", ""];
+
+      for (const str of testStrings) {
+        expect(stringToUtf8(str)).toEqual(encoder.encode(str));
+      }
+    });
+  });
+});
+
+describe("Application cursor mode", () => {
+  describe("isArrowSequence with app mode", () => {
+    it("recognizes application cursor mode up arrow (ESC O A)", () => {
+      const key = new Uint8Array([27, 79, 65]);
+      expect(isArrowSequence(27, key)).toBe(true);
+    });
+
+    it("recognizes application cursor mode down arrow (ESC O B)", () => {
+      const key = new Uint8Array([27, 79, 66]);
+      expect(isArrowSequence(27, key)).toBe(true);
+    });
+
+    it("handles both normal mode (ESC [ A) and app mode (ESC O A)", () => {
+      const normalUp = new Uint8Array([27, 91, 65]);
+      const appUp = new Uint8Array([27, 79, 65]);
+
+      expect(isArrowSequence(27, normalUp)).toBe(true);
+      expect(isArrowSequence(27, appUp)).toBe(true);
+    });
+  });
+});
+
+describe("Widget argument parsing", () => {
+  describe("isWidgetArg", () => {
+    it("recognizes --widget flag", () => {
+      expect(isWidgetArg("--widget")).toBe(true);
+    });
+
+    it("recognizes -w shorthand", () => {
+      expect(isWidgetArg("-w")).toBe(true);
+    });
+
+    it("rejects other flags", () => {
+      expect(isWidgetArg("widget")).toBe(false);
+      expect(isWidgetArg("--w")).toBe(false);
+      expect(isWidgetArg("-widget")).toBe(false);
+    });
+  });
+});
+
+describe("Widget state management", () => {
+  interface WidgetState {
+    query: string;
+    selectedIndex: number;
+    matches: Array<{ item: { name: string } }>;
+  }
+
+  const handleWidgetArrowKey = (
+    state: WidgetState,
+    key: Uint8Array,
+  ): number => {
+    const isUpArrow = key[2] === KEY_CODES.ARROW_UP;
+    const isDownArrow = key[2] === KEY_CODES.ARROW_DOWN;
+
+    if (isUpArrow) {
+      return Math.max(0, state.selectedIndex - 1);
+    }
+    if (isDownArrow) {
+      return Math.min(state.matches.length - 1, state.selectedIndex + 1);
+    }
+    return state.selectedIndex;
+  };
+
+  describe("handleWidgetArrowKey", () => {
+    const createState = (selectedIndex: number, matchCount: number) => ({
+      query: "",
+      selectedIndex,
+      matches: Array(matchCount)
+        .fill(null)
+        .map((_, i) => ({ item: { name: `script${i}` } })),
+    });
+
+    it("moves selection up on up arrow", () => {
+      const state = createState(2, 5);
+      const key = new Uint8Array([27, 91, KEY_CODES.ARROW_UP]);
+      expect(handleWidgetArrowKey(state, key)).toBe(1);
+    });
+
+    it("moves selection down on down arrow", () => {
+      const state = createState(2, 5);
+      const key = new Uint8Array([27, 91, KEY_CODES.ARROW_DOWN]);
+      expect(handleWidgetArrowKey(state, key)).toBe(3);
+    });
+
+    it("clamps at top", () => {
+      const state = createState(0, 5);
+      const key = new Uint8Array([27, 91, KEY_CODES.ARROW_UP]);
+      expect(handleWidgetArrowKey(state, key)).toBe(0);
+    });
+
+    it("clamps at bottom", () => {
+      const state = createState(4, 5);
+      const key = new Uint8Array([27, 91, KEY_CODES.ARROW_DOWN]);
+      expect(handleWidgetArrowKey(state, key)).toBe(4);
+    });
+
+    it("handles application cursor mode up arrow", () => {
+      const state = createState(2, 5);
+      const key = new Uint8Array([
+        27,
+        KEY_CODES.BRACKET_APP,
+        KEY_CODES.ARROW_UP,
+      ]);
+      expect(handleWidgetArrowKey(state, key)).toBe(1);
+    });
+
+    it("handles application cursor mode down arrow", () => {
+      const state = createState(2, 5);
+      const key = new Uint8Array([
+        27,
+        KEY_CODES.BRACKET_APP,
+        KEY_CODES.ARROW_DOWN,
+      ]);
+      expect(handleWidgetArrowKey(state, key)).toBe(3);
+    });
+
+    it("returns unchanged index for other keys", () => {
+      const state = createState(2, 5);
+      const key = new Uint8Array([27, 91, 67]); // right arrow
+      expect(handleWidgetArrowKey(state, key)).toBe(2);
+    });
+  });
+});
+
+describe("Completions output format", () => {
+  describe("formatCompletion", () => {
+    it("formats script with all fields", () => {
+      const script: Script = {
+        name: "build",
+        command: "tsc -b",
+        workspace: "@myorg/core",
+        packagePath: "packages/core/package.json",
+      };
+      expect(formatCompletion(script)).toBe("build:[@myorg/core] tsc -b");
+    });
+
+    it("formats root workspace script", () => {
+      const script: Script = {
+        name: "test",
+        command: "jest",
+        workspace: "root",
+        packagePath: "package.json",
+      };
+      expect(formatCompletion(script)).toBe("test:[root] jest");
+    });
+
+    it("handles complex commands", () => {
+      const script: Script = {
+        name: "dev",
+        command: "next dev --turbo --port 3000",
+        workspace: "web",
+        packagePath: "apps/web/package.json",
+      };
+      expect(formatCompletion(script)).toBe(
+        "dev:[web] next dev --turbo --port 3000",
+      );
+    });
+
+    it("handles special characters in workspace name", () => {
+      const script: Script = {
+        name: "lint",
+        command: "eslint .",
+        workspace: "@scope/my-pkg",
+        packagePath: "packages/my-pkg/package.json",
+      };
+      expect(formatCompletion(script)).toBe("lint:[@scope/my-pkg] eslint .");
+    });
+  });
+
+  describe("matchesQuery", () => {
+    const scripts = [
+      { name: "test", workspace: "root" },
+      { name: "test:unit", workspace: "@app/core" },
+      { name: "build", workspace: "@app/ui" },
+      { name: "dev", workspace: "@app/web" },
+    ];
+
+    it("returns all scripts for empty query", () => {
+      const matches = scripts.filter((s) => matchesQuery(s, ""));
+      expect(matches.length).toBe(4);
+    });
+
+    it("filters by script name", () => {
+      const matches = scripts.filter((s) => matchesQuery(s, "test"));
+      expect(matches.length).toBe(2);
+      expect(matches.every((s) => s.name.includes("test"))).toBe(true);
+    });
+
+    it("filters by workspace", () => {
+      const matches = scripts.filter((s) => matchesQuery(s, "core"));
+      expect(matches.length).toBe(1);
+      expect(matches[0]!.workspace).toBe("@app/core");
+    });
+
+    it("is case-insensitive (expects lowercase query)", () => {
+      const matches = scripts.filter((s) => matchesQuery(s, "app"));
+      expect(matches.length).toBe(3);
+    });
   });
 });

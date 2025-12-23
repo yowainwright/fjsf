@@ -80,18 +80,21 @@ jobs:
 
       - name: Flatten artifacts
         run: |
-          mv ./dist/fjsf-qjs-darwin-arm64/fjsf-qjs-darwin-arm64 ./dist/
-          mv ./dist/fjsf-qjs-darwin-x64/fjsf-qjs-darwin-x64 ./dist/
-          mv ./dist/fjsf-qjs-linux-x64/fjsf-qjs-linux-x64 ./dist/
+          mkdir -p ./bin
+          mv ./dist/fjsf-qjs-darwin-arm64/fjsf-qjs-darwin-arm64 ./bin/
+          mv ./dist/fjsf-qjs-darwin-x64/fjsf-qjs-darwin-x64 ./bin/
+          mv ./dist/fjsf-qjs-linux-x64/fjsf-qjs-linux-x64 ./bin/
+          cp ./bin/* ./dist/
           rm -rf ./dist/fjsf-qjs-darwin-arm64/ ./dist/fjsf-qjs-darwin-x64/ ./dist/fjsf-qjs-linux-x64/
+          chmod +x ./bin/*
 
       - name: Calculate checksums and update formula
         run: |
           VERSION="${{ github.ref_name }}"
           VERSION="${VERSION#v}"
-          SHA_ARM64=$(shasum -a 256 ./dist/fjsf-qjs-darwin-arm64 | cut -d ' ' -f 1)
-          SHA_X64=$(shasum -a 256 ./dist/fjsf-qjs-darwin-x64 | cut -d ' ' -f 1)
-          SHA_LINUX=$(shasum -a 256 ./dist/fjsf-qjs-linux-x64 | cut -d ' ' -f 1)
+          SHA_ARM64=$(shasum -a 256 ./bin/fjsf-qjs-darwin-arm64 | cut -d ' ' -f 1)
+          SHA_X64=$(shasum -a 256 ./bin/fjsf-qjs-darwin-x64 | cut -d ' ' -f 1)
+          SHA_LINUX=$(shasum -a 256 ./bin/fjsf-qjs-linux-x64 | cut -d ' ' -f 1)
 
           sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Formula/fjsf.rb
           sed -i '' "s/sha256 \".*\" # arm64/sha256 \"${SHA_ARM64}\" # arm64/" Formula/fjsf.rb
@@ -133,3 +136,15 @@ jobs:
             - `fjsf-qjs-linux-x64` - Linux x64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Bun for npm publish
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Publish to npm
+        run: |
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+          bun publish --access public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

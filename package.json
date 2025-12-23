@@ -21,8 +21,12 @@
   },
   "type": "module",
   "bin": {
-    "fjsf": "./src/cli.ts"
+    "fjsf": "./scripts/bin-wrapper.js"
   },
+  "files": [
+    "bin/fjsf-qjs-*",
+    "scripts/bin-wrapper.js"
+  ],
   "scripts": {
     "dev": "bun run src/cli.ts",
     "build": "bun build src/cli.ts --outdir ./dist --target bun --minify",
@@ -59,12 +63,13 @@
       "requireUpstream": true
     },
     "github": {
-      "release": true,
-      "releaseName": "Release ${version}",
-      "releaseNotes": "git log --pretty=format:'* %s (%h)' ${latestTag}...HEAD"
+      "release": false
     },
     "npm": {
-      "publish": true
+      "publish": false
+    },
+    "hooks": {
+      "before:init": "bun run build:qjs"
     }
   }
 }
