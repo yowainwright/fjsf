@@ -12,7 +12,7 @@ export const KEY_CODES = {
   DELETE: 127,
   PRINTABLE_START: 32,
   PRINTABLE_END: 127,
-};
+} as const;
 
 export const COLORS = {
   CYAN: "\x1b[36m",
@@ -22,7 +22,7 @@ export const COLORS = {
   DIM: "\x1b[2m",
   BOLD: "\x1b[1m",
   RESET: "\x1b[0m",
-};
+} as const;
 
 export const TERMINAL = {
   HIDE_CURSOR: "\x1b[?25l",
@@ -32,6 +32,6 @@ export const TERMINAL = {
   RESTORE_CURSOR: "\x1b[u",
   CLEAR_LINE: "\x1b[2K",
   MOVE_UP: "\x1b[1A",
-};
+} as const;
 
 export const MAX_VISIBLE = 10;

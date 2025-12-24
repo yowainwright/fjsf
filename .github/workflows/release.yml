@@ -81,8 +81,8 @@ jobs:
           mkdir -p ./bin
           mv ./dist/fjsf-qjs-darwin-arm64/fjsf-qjs-darwin-arm64 ./bin/
           mv ./dist/fjsf-qjs-linux-x64/fjsf-qjs-linux-x64 ./bin/
-          cp ./bin/* ./dist/
           rm -rf ./dist/fjsf-qjs-darwin-arm64/ ./dist/fjsf-qjs-linux-x64/
+          cp ./bin/* ./dist/
           chmod +x ./bin/*
 
       - name: Calculate checksums and update formula
