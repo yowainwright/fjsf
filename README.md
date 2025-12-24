@@ -213,16 +213,14 @@ brew install fjsf
 
 Download the latest binary for your platform from the [releases page](https://github.com/yowainwright/fjsf/releases):
 
-- Linux: `fjsf-linux-x64`
-- macOS (Intel): `fjsf-darwin-x64`
-- macOS (ARM): `fjsf-darwin-arm64`
-- Windows: `fjsf-windows-x64.exe`
+- macOS (Apple Silicon): `fjsf-qjs-darwin-arm64`
+- Linux x64: `fjsf-qjs-linux-x64`
 
 Make the binary executable and move it to your PATH:
 
 ```bash
-chmod +x fjsf-*
-sudo mv fjsf-* /usr/local/bin/fjsf
+chmod +x fjsf-qjs-*
+sudo mv fjsf-qjs-* /usr/local/bin/fjsf
 ```
 
 ## Troubleshooting

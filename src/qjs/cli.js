@@ -6,15 +6,8 @@ import { SHELL_SCRIPTS } from "./shell-scripts.js";
 import { KEY_CODES, COLORS, TERMINAL, MAX_VISIBLE } from "./key-codes.js";
 
 const { CYAN, GREEN, YELLOW, GRAY, DIM, BOLD, RESET } = COLORS;
-const {
-  HIDE_CURSOR,
-  SHOW_CURSOR,
-  CLEAR_SCREEN,
-  SAVE_CURSOR,
-  RESTORE_CURSOR,
-  CLEAR_LINE,
-  MOVE_UP,
-} = TERMINAL;
+const { HIDE_CURSOR, SHOW_CURSOR, CLEAR_SCREEN, CLEAR_LINE, MOVE_UP } =
+  TERMINAL;
 
 export function join(...parts) {
   return parts.filter(Boolean).join("/").replace(/\/+/g, "/");
