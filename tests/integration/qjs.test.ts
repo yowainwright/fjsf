@@ -285,7 +285,7 @@ describeQJS("QuickJS Binary Integration Tests", () => {
       expect(result.stdout).toContain("USAGE:");
       expect(result.stdout).toContain("find");
       expect(result.stdout).toContain("path");
-      expect(result.stdout).toContain("exec");
+      expect(result.stdout).toContain("run");
       expect(result.stdout).toContain("init");
     });
 
@@ -362,16 +362,16 @@ describeQJS("QuickJS Binary Integration Tests", () => {
     });
   });
 
-  describe("exec mode", () => {
+  describe("run mode", () => {
     test("reports missing file path", async () => {
-      const result = await runQJS(["exec"]);
+      const result = await runQJS(["run"]);
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain("Error");
       expect(result.stderr).toContain("file path");
     });
 
     test("reports missing key", async () => {
-      const result = await runQJS(["exec", "package.json"], TEST_DIR);
+      const result = await runQJS(["run", "package.json"], TEST_DIR);
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain("Error");
       expect(result.stderr).toContain("key");
@@ -379,7 +379,7 @@ describeQJS("QuickJS Binary Integration Tests", () => {
 
     test("reports key not found", async () => {
       const result = await runQJS(
-        ["exec", "package.json", "scripts.nonexistent"],
+        ["run", "package.json", "scripts.nonexistent"],
         TEST_DIR,
       );
       expect(result.exitCode).toBe(1);
@@ -387,7 +387,7 @@ describeQJS("QuickJS Binary Integration Tests", () => {
     });
 
     test("reports non-script key", async () => {
-      const result = await runQJS(["exec", "package.json", "name"], TEST_DIR);
+      const result = await runQJS(["run", "package.json", "name"], TEST_DIR);
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain("not a script");
     });

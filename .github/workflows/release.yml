@@ -44,17 +44,13 @@ jobs:
 
       - name: Build QuickJS bundle
         run: |
-          mkdir -p dist/qjs
-          bun build ./src/browser/index.ts --outfile dist/qjs/core.js --target browser --minify --format esm
-          cp src/qjs/cli.js dist/qjs/
-          cp src/qjs/constants.js dist/qjs/
-          cp src/qjs/key-codes.js dist/qjs/
-          cp src/qjs/shell-scripts.js dist/qjs/
+          mkdir -p dist
+          bun build src/cli.ts --outfile dist/cli.js --target browser --format esm --packages external --minify
           VERSION=$(node -p "require('./package.json').version")
-          sed -i.bak "s/__VERSION__/$VERSION/g" dist/qjs/constants.js && rm dist/qjs/constants.js.bak
+          sed -i.bak "s/__VERSION__/$VERSION/g" dist/cli.js && rm dist/cli.js.bak
 
       - name: Build QuickJS binary
-        run: qjsc -m -o ./dist/${{ matrix.artifact }} dist/qjs/cli.js
+        run: qjsc -m -o ./dist/${{ matrix.artifact }} dist/cli.js
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
