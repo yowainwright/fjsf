@@ -4,7 +4,7 @@ import { spawnSync } from "child_process";
 import { resolve } from "path";
 
 const TEST_WORKSPACE_DIR = resolve(process.cwd(), "tests/e2e/.test-workspace");
-const FJSF_CLI = resolve(process.cwd(), "src/cli.ts");
+const FJSF_CLI = resolve(process.cwd(), "bin/fjsf-qjs");
 
 interface TestScenario {
   name: string;
@@ -51,7 +51,7 @@ const runTest = (scenario: TestScenario): boolean => {
   console.log(`   ${scenario.description}`);
   console.log(`   Note: Interactive tests may not fully validate in CI`);
 
-  const result = spawnSync("bun", [FJSF_CLI, ...scenario.args], {
+  const result = spawnSync(FJSF_CLI, scenario.args, {
     cwd: scenario.cwd,
     encoding: "utf-8",
     stdio: "pipe",

@@ -5,7 +5,7 @@ import { resolve } from "path";
 import { writeFileSync, existsSync } from "fs";
 import { homedir } from "os";
 
-const FJSF_CLI = resolve(process.cwd(), "src/cli.ts");
+const FJSF_CLI = resolve(process.cwd(), "bin/fjsf-qjs");
 
 interface TestResult {
   name: string;
@@ -27,7 +27,7 @@ const addResult = (name: string, passed: boolean, message: string = "") => {
 const testCompletionsOutput = () => {
   console.log("\n=== Test 1: Completions Output Format ===");
 
-  const result = spawnSync("bun", [FJSF_CLI, "--completions"], {
+  const result = spawnSync(FJSF_CLI, ["--completions"], {
     encoding: "utf-8",
     stdio: "pipe",
   });
@@ -60,7 +60,7 @@ const testCompletionsOutput = () => {
 const testInitNativeMode = () => {
   console.log("\n=== Test 2: Initialize Native Mode ===");
 
-  const result = spawnSync("bun", [FJSF_CLI, "init", "--native"], {
+  const result = spawnSync(FJSF_CLI, ["init", "--native"], {
     encoding: "utf-8",
     stdio: "pipe",
     env: { ...process.env, SHELL: "/bin/zsh" },
@@ -241,7 +241,7 @@ fi
 const testFuzzyFiltering = () => {
   console.log("\n=== Test 6: Fuzzy Filtering ===");
 
-  const result = spawnSync("bun", [FJSF_CLI, "--completions", "bld"], {
+  const result = spawnSync(FJSF_CLI, ["--completions", "bld"], {
     encoding: "utf-8",
     stdio: "pipe",
   });

@@ -4,7 +4,7 @@ import { spawnSync } from "child_process";
 import { resolve } from "path";
 
 const TEST_WORKSPACE_DIR = resolve(process.cwd(), "tests/e2e/.test-workspace");
-const FJSF_CLI = resolve(process.cwd(), "src/cli.ts");
+const FJSF_CLI = resolve(process.cwd(), "bin/fjsf-qjs");
 
 interface TestScenario {
   name: string;
@@ -17,77 +17,77 @@ interface TestScenario {
 const scenarios: TestScenario[] = [
   {
     name: "exec-root-script",
-    args: ["exec", "package.json", "scripts.test"],
+    args: ["run", "package.json", "scripts.test"],
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: true,
     description: "Execute a root-level script",
   },
   {
     name: "exec-workspace-script",
-    args: ["exec", "packages/app-a/package.json", "scripts.dev"],
+    args: ["run", "packages/app-a/package.json", "scripts.dev"],
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: true,
     description: "Execute a workspace-level script",
   },
   {
     name: "exec-nonexistent-script",
-    args: ["exec", "package.json", "scripts.nonexistent"],
+    args: ["run", "package.json", "scripts.nonexistent"],
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: false,
     description: "Try to execute non-existent script (should fail)",
   },
   {
     name: "exec-non-script-key",
-    args: ["exec", "package.json", "name"],
+    args: ["run", "package.json", "name"],
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: false,
     description: "Try to execute non-script key (should fail)",
   },
   {
     name: "exec-nested-script",
-    args: ["exec", "packages/app-a/package.json", "scripts.test:unit"],
+    args: ["run", "packages/app-a/package.json", "scripts.test:unit"],
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: true,
     description: "Execute a script with colon in name",
   },
   {
     name: "exec-from-subdirectory",
-    args: ["exec", "../../package.json", "scripts.build"],
+    args: ["run", "../../package.json", "scripts.build"],
     cwd: resolve(TEST_WORKSPACE_DIR, "packages/app-a"),
     expectSuccess: true,
     description: "Execute root script from subdirectory",
   },
   {
     name: "exec-missing-file",
-    args: ["exec", "nonexistent.json", "scripts.test"],
+    args: ["run", "nonexistent.json", "scripts.test"],
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: false,
     description: "Try to execute from non-existent file (should fail)",
   },
   {
     name: "exec-without-filepath",
-    args: ["exec"],
+    args: ["run"],
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: false,
     description: "Try to execute without file path (should fail)",
   },
   {
     name: "exec-without-key",
-    args: ["exec", "package.json"],
+    args: ["run", "package.json"],
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: false,
     description: "Try to execute without key (should fail)",
   },
   {
     name: "exec-invalid-json",
-    args: ["exec", "../invalid.json", "scripts.test"],
+    args: ["run", "../invalid.json", "scripts.test"],
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: false,
     description: "Try to execute from invalid JSON file (should fail)",
   },
   {
     name: "exec-shorthand",
-    args: ["e", "package.json", "scripts.build"],
+    args: ["r", "package.json", "scripts.build"],
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: true,
     description: "Execute using shorthand 'e' command",
@@ -98,7 +98,7 @@ const runTest = (scenario: TestScenario): boolean => {
   console.log(`\nTesting: ${scenario.name}`);
   console.log(`   ${scenario.description}`);
 
-  const result = spawnSync("bun", [FJSF_CLI, ...scenario.args], {
+  const result = spawnSync(FJSF_CLI, scenario.args, {
     cwd: scenario.cwd,
     encoding: "utf-8",
     stdio: "pipe",

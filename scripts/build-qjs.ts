@@ -31,6 +31,8 @@ if (qjscExists.exitCode === 0) {
   console.log(`Binary created at bin/fjsf-qjs`);
   await $`ls -lh ${join(BIN_DIR, "fjsf-qjs")}`;
 } else {
-  console.log("\nNote: qjsc not found. Install QuickJS to compile native binary:");
+  console.log(
+    "\nNote: qjsc not found. Install QuickJS to compile native binary:",
+  );
   console.log("  brew install quickjs");
 }
