@@ -11,15 +11,12 @@ const getBinaryName = () => {
   if (os === "darwin" && cpu === "arm64") {
     return "fjsf-qjs-darwin-arm64";
   }
-  if (os === "darwin" && cpu === "x64") {
-    return "fjsf-qjs-darwin-x64";
-  }
   if (os === "linux" && cpu === "x64") {
     return "fjsf-qjs-linux-x64";
   }
 
   console.error(`Unsupported platform: ${os}-${cpu}`);
-  console.error("Supported: darwin-arm64, darwin-x64, linux-x64");
+  console.error("Supported: darwin-arm64, linux-x64");
   process.exit(1);
 };
 

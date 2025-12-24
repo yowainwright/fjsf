@@ -5,12 +5,9 @@ class Fjsf < Formula
   license "MIT"
 
   on_macos do
-    if Hardware::CPU.arm?
+    on_arm do
       url "https://github.com/yowainwright/fjsf/releases/download/v#{version}/fjsf-qjs-darwin-arm64"
       sha256 "0000000000000000000000000000000000000000000000000000000000000000" # arm64
-    else
-      url "https://github.com/yowainwright/fjsf/releases/download/v#{version}/fjsf-qjs-darwin-x64"
-      sha256 "0000000000000000000000000000000000000000000000000000000000000000" # x64
     end
   end
 
