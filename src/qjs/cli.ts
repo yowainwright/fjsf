@@ -43,7 +43,7 @@ const { HIDE_CURSOR, SHOW_CURSOR, CLEAR_SCREEN, CLEAR_LINE, MOVE_UP } =
   TERMINAL;
 
 export function getWorkspacePatterns(
-  packageJson: Record<string, unknown>
+  packageJson: Record<string, unknown>,
 ): string[] {
   const workspaces = packageJson.workspaces;
   if (Array.isArray(workspaces)) return workspaces as string[];
@@ -54,7 +54,7 @@ export function getWorkspacePatterns(
 
 export function extractScriptsFromPackage(
   cwd: string,
-  packagePath: string
+  packagePath: string,
 ): PackageScript[] {
   const content = readFile(packagePath);
   if (!content) return [];
@@ -73,13 +73,13 @@ export function extractScriptsFromPackage(
       command,
       workspace,
       packagePath: relativePath,
-    })
+    }),
   );
 }
 
 export function discoverScriptsFromFile(
   cwd: string,
-  filePath: string
+  filePath: string,
 ): PackageScript[] {
   const absolutePath = toAbsolutePath(cwd, filePath);
   if (!fileExists(absolutePath)) return [];
@@ -89,7 +89,7 @@ export function discoverScriptsFromFile(
 export function discoverScriptsFromAllPackages(
   cwd: string,
   rootPkgPath: string,
-  rootScripts: PackageScript[]
+  rootScripts: PackageScript[],
 ): PackageScript[] {
   const nestedScripts = findPackageJsonFiles(cwd, 0, 5)
     .filter((pkgPath: string) => pkgPath !== rootPkgPath)
@@ -101,7 +101,7 @@ export function discoverScriptsFromAllPackages(
 export function discoverScriptsFromWorkspaces(
   cwd: string,
   patterns: string[],
-  rootScripts: PackageScript[]
+  rootScripts: PackageScript[],
 ): PackageScript[] {
   const workspaceScripts = expandWorkspaces(cwd, patterns)
     .map((dir: string) => join(dir, "package.json"))
@@ -146,7 +146,7 @@ export function detectPackageManager(cwd: string): PackageManager {
 
 export function buildRunCommand(
   script: PackageScript,
-  pm: PackageManager
+  pm: PackageManager,
 ): string[] {
   const isRootPackage = script.packagePath === "package.json";
 
@@ -178,7 +178,7 @@ export function createEntry(
   value: string,
   key: string,
   filePath: string,
-  workspace: string
+  workspace: string,
 ): JsonEntry {
   return { path, value, key, filePath, workspace };
 }
@@ -188,7 +188,7 @@ export function flattenValue(
   path: string,
   key: string,
   filePath: string,
-  workspace: string
+  workspace: string,
 ): JsonEntry[] {
   if (value === null) {
     return [createEntry(path, "null", key, filePath, workspace)];
@@ -200,10 +200,10 @@ export function flattenValue(
       `Array(${value.length})`,
       key,
       filePath,
-      workspace
+      workspace,
     );
     const childEntries = value.flatMap((item: unknown, i: number) =>
-      flattenValue(item, `${path}[${i}]`, `[${i}]`, filePath, workspace)
+      flattenValue(item, `${path}[${i}]`, `[${i}]`, filePath, workspace),
     );
     return [selfEntry, ...childEntries];
   }
@@ -216,7 +216,7 @@ export function flattenValue(
       `Object(${keys.length})`,
       key,
       filePath,
-      workspace
+      workspace,
     );
     const childEntries = keys.flatMap((k: string) => {
       const newPath = path ? `${path}.${k}` : k;
@@ -225,7 +225,7 @@ export function flattenValue(
         newPath,
         k,
         filePath,
-        workspace
+        workspace,
       );
     });
     return [selfEntry, ...childEntries];
@@ -238,17 +238,21 @@ export function flattenJson(
   obj: Record<string, unknown>,
   prefix: string,
   filePath: string,
-  workspace: string
+  workspace: string,
 ): JsonEntry[] {
   return Object.keys(obj).flatMap((k: string) =>
-    flattenValue(obj[k], k, k, filePath, workspace)
+    flattenValue(obj[k], k, k, filePath, workspace),
   );
 }
 
 export function parseJsonFile(
   filePath: string,
-  cwd: string
-): { json: Record<string, unknown>; relativePath: string; workspace: string } | null {
+  cwd: string,
+): {
+  json: Record<string, unknown>;
+  relativePath: string;
+  workspace: string;
+} | null {
   if (!fileExists(filePath)) return null;
 
   const content = readFile(filePath);
@@ -263,21 +267,21 @@ export function parseJsonFile(
 
 export function discoverJsonEntries(
   filePaths: string[],
-  cwd: string
+  cwd: string,
 ): JsonEntry[] {
   return filePaths
     .map((filePath: string) => parseJsonFile(filePath, cwd))
     .filter(
       (
-        result
+        result,
       ): result is {
         json: Record<string, unknown>;
         relativePath: string;
         workspace: string;
-      } => result !== null
+      } => result !== null,
     )
     .flatMap(({ json, relativePath, workspace }) =>
-      flattenJson(json, "", relativePath, workspace)
+      flattenJson(json, "", relativePath, workspace),
     );
 }
 
@@ -288,7 +292,7 @@ export function discoverAllPackageJsons(cwd: string): JsonEntry[] {
 
 export function discoverFilesByNameEntries(
   fileName: string,
-  cwd: string
+  cwd: string,
 ): JsonEntry[] {
   const paths = findFilesByName(cwd, fileName, 0, 5);
   return discoverJsonEntries(paths, cwd);
@@ -296,7 +300,7 @@ export function discoverFilesByNameEntries(
 
 export function getSelectionPrefix(
   index: number,
-  selectedIndex: number
+  selectedIndex: number,
 ): string {
   const isSelected = index === selectedIndex;
   return isSelected ? `${GREEN}>${RESET}` : " ";
@@ -305,7 +309,7 @@ export function getSelectionPrefix(
 export function formatScriptLine(
   match: FuzzyMatch<PackageScript>,
   index: number,
-  selectedIndex: number
+  selectedIndex: number,
 ): string[] {
   const script = match.item;
   const prefix = getSelectionPrefix(index, selectedIndex);
@@ -317,7 +321,7 @@ export function formatScriptLine(
 export function formatJsonLine(
   match: FuzzyMatch<JsonEntry>,
   index: number,
-  selectedIndex: number
+  selectedIndex: number,
 ): string[] {
   const entry = match.item;
   const prefix = getSelectionPrefix(index, selectedIndex);
@@ -335,7 +339,11 @@ export function buildRemainingLines<T>(matches: FuzzyMatch<T>[]): string[] {
 export function renderList<T>(
   state: InteractiveState<T>,
   title: string,
-  formatLine: (match: FuzzyMatch<T>, index: number, selectedIndex: number) => string[]
+  formatLine: (
+    match: FuzzyMatch<T>,
+    index: number,
+    selectedIndex: number,
+  ) => string[],
 ): void {
   const visibleMatches = state.matches.slice(0, MAX_VISIBLE);
 
@@ -347,7 +355,7 @@ export function renderList<T>(
   ];
 
   const itemLines = visibleMatches.flatMap((match: FuzzyMatch<T>, i: number) =>
-    formatLine(match, i, state.selectedIndex)
+    formatLine(match, i, state.selectedIndex),
   );
 
   const remainingLines = buildRemainingLines(state.matches);
@@ -363,7 +371,7 @@ export function renderScripts(state: InteractiveState<PackageScript>): void {
 
 export function renderJson(
   state: InteractiveState<JsonEntry>,
-  title: string
+  title: string,
 ): void {
   renderList(state, title, formatJsonLine);
 }
@@ -372,17 +380,20 @@ export function updateState<T>(
   state: InteractiveState<T>,
   query: string,
   items: T[],
-  getText: (item: T) => string
+  getText: (item: T) => string,
 ): InteractiveState<T> {
   const matches = fuzzySearch(items, query, getText);
   const clampedIndex = Math.min(
     state.selectedIndex,
-    Math.max(0, matches.length - 1)
+    Math.max(0, matches.length - 1),
   );
   return { query, selectedIndex: clampedIndex, matches, items };
 }
 
-export function matchesQuery(script: PackageScript, lowerQuery: string): boolean {
+export function matchesQuery(
+  script: PackageScript,
+  lowerQuery: string,
+): boolean {
   if (!lowerQuery) return true;
   const nameMatches = script.name.toLowerCase().includes(lowerQuery);
   const workspaceMatches = script.workspace.toLowerCase().includes(lowerQuery);
@@ -420,14 +431,17 @@ export function exitWithError(message: string): never {
   std.exit(1);
 }
 
-export function validateRunInputs(filePath: string | undefined, runKey: string | undefined): void {
+export function validateRunInputs(
+  filePath: string | undefined,
+  runKey: string | undefined,
+): void {
   if (!filePath) exitWithError("No file path provided");
   if (!runKey) exitWithError("No key provided");
 }
 
 export function loadAndParseJson(
   absolutePath: string,
-  filePath: string
+  filePath: string,
 ): Record<string, unknown> {
   const content = readFile(absolutePath);
   if (!content) exitWithError(`Could not read ${filePath}`);
@@ -441,7 +455,7 @@ export function loadAndParseJson(
 export function validateRunKey(
   value: unknown,
   runKey: string,
-  filePath: string
+  filePath: string,
 ): void {
   const isUndefined = value === undefined;
   if (isUndefined) exitWithError(`Key "${runKey}" not found in ${filePath}`);
@@ -453,13 +467,13 @@ export function validateRunKey(
   const isNotScript = !runKey.startsWith("scripts.");
   if (isNotScript)
     exitWithError(
-      `Cannot run "${runKey}" - not a script (must start with "scripts.")`
+      `Cannot run "${runKey}" - not a script (must start with "scripts.")`,
     );
 }
 
 export function buildSimpleRunCommand(
   pm: PackageManager,
-  scriptName: string
+  scriptName: string,
 ): string[] {
   const commands: Record<PackageManager, string[]> = {
     pnpm: ["pnpm", "run", scriptName],
@@ -470,7 +484,10 @@ export function buildSimpleRunCommand(
   return commands[pm] || commands.npm;
 }
 
-export function runKey(filePath: string | undefined, runKeyValue: string | undefined): void {
+export function runKey(
+  filePath: string | undefined,
+  runKeyValue: string | undefined,
+): void {
   validateRunInputs(filePath, runKeyValue);
 
   const cwd = getCwd();
@@ -654,7 +671,7 @@ export function isPrintableChar(byte0: number): boolean {
 
 export function createInitialState<T>(
   items: T[],
-  getText: (item: T) => string
+  getText: (item: T) => string,
 ): InteractiveState<T> {
   return {
     query: "",
@@ -674,7 +691,7 @@ export function handleArrowKey<T>(
   state: InteractiveState<T>,
   key: Uint8Array,
   render: (state: InteractiveState<T>, title: string) => void,
-  title: string
+  title: string,
 ): InteractiveState<T> {
   const isUpArrow = key[2] === KEY_CODES.ARROW_UP;
   const isDownArrow = key[2] === KEY_CODES.ARROW_DOWN;
@@ -685,7 +702,7 @@ export function handleArrowKey<T>(
   } else if (isDownArrow) {
     state.selectedIndex = Math.min(
       state.matches.length - 1,
-      state.selectedIndex + 1
+      state.selectedIndex + 1,
     );
     render(state, title);
   }
@@ -698,7 +715,7 @@ export function handleBackspace<T>(
   items: T[],
   getText: (item: T) => string,
   render: (state: InteractiveState<T>, title: string) => void,
-  title: string
+  title: string,
 ): InteractiveState<T> {
   const hasQuery = state.query.length > 0;
   if (!hasQuery) return state;
@@ -715,7 +732,7 @@ export function handlePrintableChar<T>(
   items: T[],
   getText: (item: T) => string,
   render: (state: InteractiveState<T>, title: string) => void,
-  title: string
+  title: string,
 ): InteractiveState<T> {
   const char = String.fromCharCode(byte0);
   const newQuery = state.query + char;
@@ -728,7 +745,7 @@ export function runInteractive<T>(
   items: T[],
   getText: (item: T) => string,
   render: (state: InteractiveState<T>, title: string) => void,
-  title: string
+  title: string,
 ): FuzzyMatch<T> | null {
   const hasNoItems = items.length === 0;
   if (hasNoItems) {
@@ -781,7 +798,7 @@ export function runInit(initMode: "widget" | "native"): void {
 
   if (shell === "unknown") {
     std.err.puts(
-      `${YELLOW}Unable to detect shell type. Supported: bash, zsh, fish${RESET}\n`
+      `${YELLOW}Unable to detect shell type. Supported: bash, zsh, fish${RESET}\n`,
     );
     std.exit(1);
   }
@@ -845,12 +862,12 @@ export function runInit(initMode: "widget" | "native"): void {
 
   print(`\n${BOLD}${GREEN}Setup complete!${RESET}`);
   print(
-    `${DIM}Restart your shell or run: ${RESET}${BOLD}source ${configFile}${RESET}\n`
+    `${DIM}Restart your shell or run: ${RESET}${BOLD}source ${configFile}${RESET}\n`,
   );
 
   if (initMode === "native") {
     print(
-      `${CYAN}Using native completions mode (works with fzf-tab)${RESET}\n`
+      `${CYAN}Using native completions mode (works with fzf-tab)${RESET}\n`,
     );
   }
 }
@@ -860,7 +877,7 @@ const WIDGET_MAX_VISIBLE = 8;
 export function formatWidgetLine(
   match: FuzzyMatch<PackageScript>,
   index: number,
-  selectedIndex: number
+  selectedIndex: number,
 ): string {
   const script = match.item;
   const isSelected = index === selectedIndex;
@@ -871,7 +888,7 @@ export function formatWidgetLine(
 export function renderWidget(
   ttyFd: number,
   state: InteractiveState<PackageScript>,
-  lastLineCount: number
+  lastLineCount: number,
 ): number {
   for (let i = 0; i < lastLineCount; i++) {
     ttyWrite(ttyFd, MOVE_UP);
@@ -949,7 +966,7 @@ export function readWidgetKey(stdinFd: number): Uint8Array | null {
 
 export function handleWidgetArrowKey(
   state: InteractiveState<PackageScript>,
-  key: Uint8Array
+  key: Uint8Array,
 ): number {
   const isUpArrow = key[2] === KEY_CODES.ARROW_UP;
   const isDownArrow = key[2] === KEY_CODES.ARROW_DOWN;
@@ -965,7 +982,7 @@ export function handleWidgetArrowKey(
 
 export function handleWidgetBackspace(
   state: InteractiveState<PackageScript>,
-  scripts: PackageScript[]
+  scripts: PackageScript[],
 ): InteractiveState<PackageScript> {
   const hasQuery = state.query.length > 0;
   if (!hasQuery) return state;
@@ -977,7 +994,7 @@ export function handleWidgetBackspace(
 export function handleWidgetPrintable(
   state: InteractiveState<PackageScript>,
   byte0: number,
-  scripts: PackageScript[]
+  scripts: PackageScript[],
 ): InteractiveState<PackageScript> {
   const char = String.fromCharCode(byte0);
   const newQuery = state.query + char;
@@ -986,7 +1003,7 @@ export function handleWidgetPrintable(
 
 export function outputWidgetSelection(
   state: InteractiveState<PackageScript>,
-  executeDirectly: boolean
+  executeDirectly: boolean,
 ): void {
   const hasSelection = state.matches.length > 0;
   if (!hasSelection) return;
@@ -1003,7 +1020,7 @@ export function outputWidgetSelection(
 
 export function runWidget(
   scripts: PackageScript[],
-  initialQuery: string
+  initialQuery: string,
 ): void {
   const hasNoScripts = scripts.length === 0;
   if (hasNoScripts) {
@@ -1099,7 +1116,7 @@ export function main(): void {
       entries,
       (e: JsonEntry) => `${e.path} ${e.workspace}`,
       renderJson,
-      title
+      title,
     );
     return;
   }
@@ -1118,7 +1135,7 @@ export function main(): void {
       entries,
       (e: JsonEntry) => `${e.path} ${e.workspace}`,
       renderJson,
-      title
+      title,
     );
     return;
   }
@@ -1139,7 +1156,7 @@ export function main(): void {
     scripts,
     getScriptText,
     renderScripts,
-    "Fuzzy NPM Scripts"
+    "Fuzzy NPM Scripts",
   );
 
   if (selected) {

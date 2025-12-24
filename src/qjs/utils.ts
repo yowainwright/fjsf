@@ -78,7 +78,7 @@ export function parseJson<T>(content: string): T | null {
 
 export function getNestedValue(
   obj: Record<string, unknown>,
-  path: string
+  path: string,
 ): unknown {
   return path.split(".").reduce((current: unknown, key: string) => {
     const isNullish = current === null || current === undefined;
@@ -93,7 +93,7 @@ export function isSkippableEntry(entry: string): boolean {
 
 export function isTraversableDirectory(
   entry: string,
-  fullPath: string
+  fullPath: string,
 ): boolean {
   return !isSkippableEntry(entry) && isDirectory(fullPath);
 }
@@ -101,7 +101,7 @@ export function isTraversableDirectory(
 export function findPackageJsonFiles(
   dir: string,
   depth: number,
-  maxDepth: number
+  maxDepth: number,
 ): string[] {
   if (depth > maxDepth) return [];
 
@@ -119,7 +119,7 @@ export function findPackageJsonFiles(
       );
     })
     .flatMap((entry: string) =>
-      findPackageJsonFiles(join(dir, entry), depth + 1, maxDepth)
+      findPackageJsonFiles(join(dir, entry), depth + 1, maxDepth),
     );
 
   return [...directMatches, ...nestedMatches];
@@ -129,7 +129,7 @@ export function findFilesByName(
   dir: string,
   fileName: string,
   depth: number,
-  maxDepth: number
+  maxDepth: number,
 ): string[] {
   if (depth > maxDepth) return [];
 
@@ -145,7 +145,7 @@ export function findFilesByName(
       return entry !== fileName && isTraversableDirectory(entry, fullPath);
     })
     .flatMap((entry: string) =>
-      findFilesByName(join(dir, entry), fileName, depth + 1, maxDepth)
+      findFilesByName(join(dir, entry), fileName, depth + 1, maxDepth),
     );
 
   return [...directMatches, ...nestedMatches];
@@ -178,7 +178,7 @@ export function expandGlobPattern(rootDir: string, pattern: string): string[] {
 
 export function expandDirectPattern(
   rootDir: string,
-  pattern: string
+  pattern: string,
 ): string[] {
   const fullPath = join(rootDir, pattern);
   const pkgPath = join(fullPath, "package.json");
@@ -187,16 +187,19 @@ export function expandDirectPattern(
 
 export function expandWorkspacePattern(
   rootDir: string,
-  pattern: string
+  pattern: string,
 ): string[] {
   return hasGlobPattern(pattern)
     ? expandGlobPattern(rootDir, pattern)
     : expandDirectPattern(rootDir, pattern);
 }
 
-export function expandWorkspaces(rootDir: string, patterns: string[]): string[] {
+export function expandWorkspaces(
+  rootDir: string,
+  patterns: string[],
+): string[] {
   return patterns.flatMap((pattern: string) =>
-    expandWorkspacePattern(rootDir, pattern)
+    expandWorkspacePattern(rootDir, pattern),
   );
 }
 
