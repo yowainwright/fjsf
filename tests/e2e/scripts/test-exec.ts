@@ -90,7 +90,7 @@ const scenarios: TestScenario[] = [
     args: ["r", "package.json", "scripts.build"],
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: true,
-    description: "Execute using shorthand 'e' command",
+    description: "Execute using shorthand 'r' command",
   },
 ];
 
