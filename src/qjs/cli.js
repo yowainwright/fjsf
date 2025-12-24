@@ -6,7 +6,15 @@ import { SHELL_SCRIPTS } from "./shell-scripts.js";
 import { KEY_CODES, COLORS, TERMINAL, MAX_VISIBLE } from "./key-codes.js";
 
 const { CYAN, GREEN, YELLOW, GRAY, DIM, BOLD, RESET } = COLORS;
-const { HIDE_CURSOR, SHOW_CURSOR, CLEAR_SCREEN } = TERMINAL;
+const {
+  HIDE_CURSOR,
+  SHOW_CURSOR,
+  CLEAR_SCREEN,
+  SAVE_CURSOR,
+  RESTORE_CURSOR,
+  CLEAR_LINE,
+  MOVE_UP,
+} = TERMINAL;
 
 export function join(...parts) {
   return parts.filter(Boolean).join("/").replace(/\/+/g, "/");
@@ -527,6 +535,8 @@ export function createDefaultOptions() {
     quit: false,
     completions: false,
     completionsQuery: "",
+    widget: false,
+    widgetQuery: "",
     mode: "scripts",
     filePath: undefined,
     execKey: undefined,
@@ -562,6 +572,10 @@ export function isExecArg(arg) {
   return ["exec", "e"].includes(arg);
 }
 
+export function isWidgetArg(arg) {
+  return ["--widget", "-w"].includes(arg);
+}
+
 export function hasNextArg(args, i) {
   return i + 1 < args.length;
 }
@@ -590,6 +604,13 @@ export function parseArgs(args) {
       const hasQuery = nextArg && !nextArgIsOption;
       if (hasQuery) {
         options.completionsQuery = nextArg;
+        i++;
+      }
+    } else if (isWidgetArg(arg)) {
+      options.widget = true;
+      const hasQuery = nextArg && !nextArgIsOption;
+      if (hasQuery) {
+        options.widgetQuery = nextArg;
         i++;
       }
     } else if (arg === "init") {
@@ -651,11 +672,11 @@ export function isEnterKey(byte0) {
 }
 
 export function isArrowSequence(byte0, key) {
-  return (
-    byte0 === KEY_CODES.ESCAPE &&
-    key.length >= 3 &&
-    key[1] === KEY_CODES.BRACKET
-  );
+  const isEscape = byte0 === KEY_CODES.ESCAPE;
+  const hasEnoughBytes = key.length >= 3;
+  const isNormalMode = key[1] === KEY_CODES.BRACKET;
+  const isAppMode = key[1] === KEY_CODES.BRACKET_APP;
+  return isEscape && hasEnoughBytes && (isNormalMode || isAppMode);
 }
 
 export function isBackspaceKey(byte0) {
@@ -900,6 +921,244 @@ export function runInit(initMode) {
   }
 }
 
+const WIDGET_MAX_VISIBLE = 8;
+
+export function formatWidgetLine(match, index, selectedIndex) {
+  const script = match.item;
+  const isSelected = index === selectedIndex;
+  const prefix = isSelected ? `${GREEN}❯${RESET}` : " ";
+  return `${prefix} ${script.name} ${DIM}[${script.workspace}]${RESET}`;
+}
+
+const isHighSurrogate = (code) => code >= 0xd800 && code < 0xdc00;
+
+const isLowSurrogate = (code) => code >= 0xdc00 && code < 0xe000;
+
+const decodeSurrogatePair = (high, low) =>
+  ((high - 0xd800) << 10) + (low - 0xdc00) + 0x10000;
+
+const encodeOneByteChar = (code) => [code];
+
+const encodeTwoByteChar = (code) => [0xc0 | (code >> 6), 0x80 | (code & 0x3f)];
+
+const encodeThreeByteChar = (code) => [
+  0xe0 | (code >> 12),
+  0x80 | ((code >> 6) & 0x3f),
+  0x80 | (code & 0x3f),
+];
+
+const encodeFourByteChar = (code) => [
+  0xf0 | (code >> 18),
+  0x80 | ((code >> 12) & 0x3f),
+  0x80 | ((code >> 6) & 0x3f),
+  0x80 | (code & 0x3f),
+];
+
+export function stringToUtf8(str) {
+  const bytes = [];
+  let i = 0;
+
+  while (i < str.length) {
+    const code = str.charCodeAt(i);
+    const nextCode = str.charCodeAt(i + 1);
+    const isSurrogatePair = isHighSurrogate(code) && isLowSurrogate(nextCode);
+
+    if (code < 0x80) {
+      bytes.push(...encodeOneByteChar(code));
+    } else if (code < 0x800) {
+      bytes.push(...encodeTwoByteChar(code));
+    } else if (isSurrogatePair) {
+      bytes.push(...encodeFourByteChar(decodeSurrogatePair(code, nextCode)));
+      i++;
+    } else {
+      bytes.push(...encodeThreeByteChar(code));
+    }
+
+    i++;
+  }
+
+  return new Uint8Array(bytes);
+}
+
+export function ttyWrite(fd, str) {
+  const buf = stringToUtf8(str);
+  os.write(fd, buf.buffer, 0, buf.length);
+}
+
+export function renderWidget(ttyFd, state, lastLineCount) {
+  for (let i = 0; i < lastLineCount; i++) {
+    ttyWrite(ttyFd, MOVE_UP);
+    ttyWrite(ttyFd, CLEAR_LINE);
+  }
+
+  const hasNoMatches = state.matches.length === 0;
+  if (hasNoMatches) {
+    ttyWrite(ttyFd, `\n${DIM}No matches${RESET}`);
+    ttyWrite(ttyFd, RESTORE_CURSOR);
+    return 1;
+  }
+
+  const halfWindow = Math.floor(WIDGET_MAX_VISIBLE / 2);
+  const totalMatches = state.matches.length;
+  let startIndex = Math.max(0, state.selectedIndex - halfWindow);
+  const endIndex = Math.min(totalMatches, startIndex + WIDGET_MAX_VISIBLE);
+  const actualVisible = endIndex - startIndex;
+
+  const needsAdjustment =
+    actualVisible < WIDGET_MAX_VISIBLE && totalMatches >= WIDGET_MAX_VISIBLE;
+  if (needsAdjustment) {
+    startIndex = Math.max(0, endIndex - WIDGET_MAX_VISIBLE);
+  }
+
+  const visibleMatches = state.matches.slice(startIndex, endIndex);
+
+  for (let idx = 0; idx < visibleMatches.length; idx++) {
+    const match = visibleMatches[idx];
+    if (!match) continue;
+    const absoluteIndex = startIndex + idx;
+    const line = formatWidgetLine(match, absoluteIndex, state.selectedIndex);
+    ttyWrite(ttyFd, `\n${line}`);
+  }
+
+  const remaining = totalMatches - WIDGET_MAX_VISIBLE;
+  const hasMore = remaining > 0;
+  if (hasMore) {
+    ttyWrite(ttyFd, `\n${DIM}... ${remaining} more${RESET}`);
+  }
+
+  const lineCount = visibleMatches.length + (hasMore ? 1 : 0);
+  return lineCount;
+}
+
+export function createWidgetContext() {
+  const ttyFd = os.open("/dev/tty", os.O_WRONLY);
+  const isValid = ttyFd >= 0;
+  if (!isValid) return null;
+
+  const stdinFd = std.in.fileno();
+  os.ttySetRaw(stdinFd);
+  ttyWrite(ttyFd, HIDE_CURSOR);
+
+  return { ttyFd, stdinFd, lineCount: 0 };
+}
+
+export function cleanupWidgetContext(ctx) {
+  if (!ctx) return;
+
+  for (let i = 0; i < ctx.lineCount; i++) {
+    ttyWrite(ctx.ttyFd, MOVE_UP);
+    ttyWrite(ctx.ttyFd, CLEAR_LINE);
+  }
+  ttyWrite(ctx.ttyFd, SHOW_CURSOR);
+
+  os.ttySetRaw(ctx.stdinFd, false);
+  os.close(ctx.ttyFd);
+}
+
+export function readWidgetKey(stdinFd) {
+  const buf = new Uint8Array(16);
+  const n = os.read(stdinFd, buf.buffer, 0, buf.length);
+  return n > 0 ? buf.slice(0, n) : null;
+}
+
+export function handleWidgetArrowKey(state, key) {
+  const isUpArrow = key[2] === KEY_CODES.ARROW_UP;
+  const isDownArrow = key[2] === KEY_CODES.ARROW_DOWN;
+
+  if (isUpArrow) {
+    return Math.max(0, state.selectedIndex - 1);
+  }
+  if (isDownArrow) {
+    return Math.min(state.matches.length - 1, state.selectedIndex + 1);
+  }
+  return state.selectedIndex;
+}
+
+export function handleWidgetBackspace(state, scripts) {
+  const hasQuery = state.query.length > 0;
+  if (!hasQuery) return state;
+
+  const newQuery = state.query.slice(0, -1);
+  return updateState(state, newQuery, scripts, getScriptText);
+}
+
+export function handleWidgetPrintable(state, byte0, scripts) {
+  const char = String.fromCharCode(byte0);
+  const newQuery = state.query + char;
+  return updateState(state, newQuery, scripts, getScriptText);
+}
+
+export function outputWidgetSelection(state, executeDirectly) {
+  const hasSelection = state.matches.length > 0;
+  if (!hasSelection) return;
+
+  const selected = state.matches[state.selectedIndex];
+
+  if (executeDirectly) {
+    executeScript(selected.item);
+  } else {
+    std.out.puts(selected.item.name);
+    std.out.flush();
+  }
+}
+
+export function runWidget(scripts, initialQuery) {
+  const hasNoScripts = scripts.length === 0;
+  if (hasNoScripts) {
+    std.exit(0);
+  }
+
+  const ctx = createWidgetContext();
+  if (!ctx) {
+    std.exit(1);
+  }
+
+  let state = createInitialState(scripts, getScriptText);
+
+  if (initialQuery) {
+    state = updateState(state, initialQuery, scripts, getScriptText);
+  }
+
+  ctx.lineCount = renderWidget(ctx.ttyFd, state, 0);
+
+  while (true) {
+    const key = readWidgetKey(ctx.stdinFd);
+    if (!key) continue;
+
+    const byte0 = key[0];
+
+    if (isExitKey(byte0, key)) {
+      cleanupWidgetContext(ctx);
+      std.exit(0);
+    }
+
+    if (isEnterKey(byte0)) {
+      cleanupWidgetContext(ctx);
+      const stdoutIsTty = os.isatty(std.out.fileno());
+      outputWidgetSelection(state, stdoutIsTty);
+      if (stdoutIsTty) return;
+      std.exit(0);
+    }
+
+    if (isArrowSequence(byte0, key)) {
+      state.selectedIndex = handleWidgetArrowKey(state, key);
+      ctx.lineCount = renderWidget(ctx.ttyFd, state, ctx.lineCount);
+      continue;
+    }
+
+    if (isBackspaceKey(byte0)) {
+      state = handleWidgetBackspace(state, scripts);
+      ctx.lineCount = renderWidget(ctx.ttyFd, state, ctx.lineCount);
+      continue;
+    }
+
+    if (isPrintableChar(byte0)) {
+      state = handleWidgetPrintable(state, byte0, scripts);
+      ctx.lineCount = renderWidget(ctx.ttyFd, state, ctx.lineCount);
+    }
+  }
+}
+
 export function main() {
   const args = scriptArgs.slice(1);
   const options = parseArgs(args);
@@ -966,6 +1225,11 @@ export function main() {
 
   if (options.completions) {
     runCompletions(options.completionsQuery, scripts);
+    return;
+  }
+
+  if (options.widget) {
+    runWidget(scripts, options.widgetQuery);
     return;
   }
 
