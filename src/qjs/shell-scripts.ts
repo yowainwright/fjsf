@@ -1,4 +1,6 @@
-export const SHELL_SCRIPTS = {
+import type { AllShellScripts } from "./types.ts";
+
+export const SHELL_SCRIPTS: AllShellScripts = {
   zsh: {
     widget: `_fjsf_widget() {
   if [[ "$BUFFER" =~ ^(npm|pnpm|yarn|bun)[[:space:]]+run([[:space:]](.*))?$ ]]; then
@@ -71,8 +73,8 @@ compdef _fjsf_native_yarn_run yarn`,
     'f:Find (short)'
     'path:Query specific file'
     'p:Path (short)'
-    'exec:Execute key from file'
-    'e:Exec (short)'
+    'run:Run key from file'
+    'r:Run (short)'
     'help:Show help'
     'h:Help (short)'
     'init:Setup shell integration'
@@ -136,7 +138,7 @@ complete -F _fjsf_native_completions yarn`,
 
     completions: `_fjsf_completions() {
   local cur="\${COMP_WORDS[COMP_CWORD]}"
-  local commands="find f path p exec e help h quit q init"
+  local commands="find f path p run r help h quit q init"
 
   if [ \${COMP_CWORD} -eq 1 ]; then
     COMPREPLY=($(compgen -W "$commands" -- "$cur"))
@@ -192,8 +194,8 @@ complete -c fjsf -n "__fish_use_subcommand" -a "find" -d "Find all versions of f
 complete -c fjsf -n "__fish_use_subcommand" -a "f" -d "Find (short)"
 complete -c fjsf -n "__fish_use_subcommand" -a "path" -d "Query specific file"
 complete -c fjsf -n "__fish_use_subcommand" -a "p" -d "Path (short)"
-complete -c fjsf -n "__fish_use_subcommand" -a "exec" -d "Execute key from file"
-complete -c fjsf -n "__fish_use_subcommand" -a "e" -d "Exec (short)"
+complete -c fjsf -n "__fish_use_subcommand" -a "run" -d "Run key from file"
+complete -c fjsf -n "__fish_use_subcommand" -a "r" -d "Run (short)"
 complete -c fjsf -n "__fish_use_subcommand" -a "help" -d "Show help"
 complete -c fjsf -n "__fish_use_subcommand" -a "h" -d "Help (short)"
 complete -c fjsf -n "__fish_use_subcommand" -a "init" -d "Setup shell integration"`,

@@ -1,214 +1,117 @@
+// @ts-nocheck
 import * as std from "std";
 import * as os from "os";
-import { fuzzySearch, getScriptText } from "./core.js";
-import { VERSION, HELP_TEXT } from "./constants.js";
-import { SHELL_SCRIPTS } from "./shell-scripts.js";
-import { KEY_CODES, COLORS, TERMINAL, MAX_VISIBLE } from "./key-codes.js";
+import { fuzzySearch, getScriptText } from "./core";
+import { VERSION, HELP_TEXT } from "./constants";
+import { SHELL_SCRIPTS } from "./shell-scripts";
+import { KEY_CODES, COLORS, TERMINAL, MAX_VISIBLE } from "./key-codes";
+import type {
+  PackageScript,
+  ParsedOptions,
+  JsonEntry,
+  FuzzyMatch,
+  InteractiveState,
+  WidgetContext,
+  PackageManager,
+} from "./types";
+import {
+  join,
+  dirname,
+  relative,
+  toAbsolutePath,
+  fileExists,
+  readFile,
+  writeFile,
+  appendFile,
+  parseJson,
+  getNestedValue,
+  findPackageJsonFiles,
+  findFilesByName,
+  expandWorkspaces,
+  getHomeDir,
+  detectShell,
+  getShellConfigFile,
+  ttyWrite,
+  spawnCommand,
+  getCwd,
+  changeDir,
+  makeDir,
+} from "./utils";
 
 const { CYAN, GREEN, YELLOW, GRAY, DIM, BOLD, RESET } = COLORS;
 const { HIDE_CURSOR, SHOW_CURSOR, CLEAR_SCREEN, CLEAR_LINE, MOVE_UP } =
   TERMINAL;
 
-export function join(...parts) {
-  return parts.filter(Boolean).join("/").replace(/\/+/g, "/");
-}
-
-export function dirname(path) {
-  const idx = path.lastIndexOf("/");
-  return idx === -1 ? "." : path.slice(0, idx) || "/";
-}
-
-export function basename(path) {
-  const idx = path.lastIndexOf("/");
-  return idx === -1 ? path : path.slice(idx + 1);
-}
-
-export function relative(from, to) {
-  if (to.startsWith(from)) {
-    const rel = to.slice(from.length);
-    return rel.startsWith("/") ? rel.slice(1) : rel;
-  }
-  return to;
-}
-
-export function isDirectory(path) {
-  const [stats, err] = os.stat(path);
-  if (err !== 0) return false;
-  return (stats.mode & os.S_IFMT) === os.S_IFDIR;
-}
-
-export function readDir(path) {
-  const [entries, err] = os.readdir(path);
-  if (err !== 0) return [];
-  return entries.filter((e) => e !== "." && e !== "..");
-}
-
-export function fileExists(path) {
-  const [, err] = os.stat(path);
-  return err === 0;
-}
-
-export function readFile(path) {
-  return std.loadFile(path);
-}
-
-export function parseJson(content) {
-  try {
-    return JSON.parse(content);
-  } catch {
-    return null;
-  }
-}
-
-export function isSkippableEntry(entry) {
-  return entry === "node_modules" || entry.startsWith(".");
-}
-
-export function isTraversableDirectory(entry, fullPath) {
-  return !isSkippableEntry(entry) && isDirectory(fullPath);
-}
-
-export function findPackageJsonFiles(dir, depth, maxDepth) {
-  if (depth > maxDepth) return [];
-
-  const entries = readDir(dir);
-
-  const directMatches = entries
-    .filter((entry) => entry === "package.json")
-    .map((entry) => join(dir, entry));
-
-  const nestedMatches = entries
-    .filter((entry) => {
-      const fullPath = join(dir, entry);
-      return (
-        entry !== "package.json" && isTraversableDirectory(entry, fullPath)
-      );
-    })
-    .flatMap((entry) =>
-      findPackageJsonFiles(join(dir, entry), depth + 1, maxDepth),
-    );
-
-  return [...directMatches, ...nestedMatches];
-}
-
-export function findFilesByName(dir, fileName, depth, maxDepth) {
-  if (depth > maxDepth) return [];
-
-  const entries = readDir(dir);
-
-  const directMatches = entries
-    .filter((entry) => entry === fileName)
-    .map((entry) => join(dir, entry));
-
-  const nestedMatches = entries
-    .filter((entry) => {
-      const fullPath = join(dir, entry);
-      return entry !== fileName && isTraversableDirectory(entry, fullPath);
-    })
-    .flatMap((entry) =>
-      findFilesByName(join(dir, entry), fileName, depth + 1, maxDepth),
-    );
-
-  return [...directMatches, ...nestedMatches];
-}
-
-export function hasGlobPattern(pattern) {
-  return pattern.includes("*");
-}
-
-export function getBaseDir(pattern) {
-  const parts = pattern.split("*");
-  return parts[0] || "";
-}
-
-export function isWorkspaceDirectory(basePath, entry) {
-  const fullPath = join(basePath, entry);
-  const pkgPath = join(fullPath, "package.json");
-  return isDirectory(fullPath) && fileExists(pkgPath);
-}
-
-export function expandGlobPattern(rootDir, pattern) {
-  const basePath = join(rootDir, getBaseDir(pattern));
-  if (!fileExists(basePath)) return [];
-
-  return readDir(basePath)
-    .filter((entry) => isWorkspaceDirectory(basePath, entry))
-    .map((entry) => join(basePath, entry));
-}
-
-export function expandDirectPattern(rootDir, pattern) {
-  const fullPath = join(rootDir, pattern);
-  const pkgPath = join(fullPath, "package.json");
-  return fileExists(pkgPath) ? [fullPath] : [];
-}
-
-export function expandWorkspacePattern(rootDir, pattern) {
-  return hasGlobPattern(pattern)
-    ? expandGlobPattern(rootDir, pattern)
-    : expandDirectPattern(rootDir, pattern);
-}
-
-export function expandWorkspaces(rootDir, patterns) {
-  return patterns.flatMap((pattern) =>
-    expandWorkspacePattern(rootDir, pattern),
-  );
-}
-
-export function getWorkspacePatterns(packageJson) {
+export function getWorkspacePatterns(
+  packageJson: Record<string, unknown>
+): string[] {
   const workspaces = packageJson.workspaces;
-  if (Array.isArray(workspaces)) return workspaces;
-  if (workspaces && workspaces.packages) return workspaces.packages;
+  if (Array.isArray(workspaces)) return workspaces as string[];
+  if (workspaces && (workspaces as Record<string, unknown>).packages)
+    return (workspaces as Record<string, unknown>).packages as string[];
   return [];
 }
 
-export function extractScriptsFromPackage(cwd, packagePath) {
+export function extractScriptsFromPackage(
+  cwd: string,
+  packagePath: string
+): PackageScript[] {
   const content = readFile(packagePath);
   if (!content) return [];
 
-  const pkg = parseJson(content);
+  const pkg = parseJson<Record<string, unknown>>(content);
   const hasScripts = pkg && pkg.scripts;
   if (!hasScripts) return [];
 
   const dir = packagePath.replace(/\/package\.json$/, "");
-  const workspace = pkg.name || relative(cwd, dir);
+  const workspace = (pkg.name as string) || relative(cwd, dir);
   const relativePath = relative(cwd, packagePath);
 
-  return Object.entries(pkg.scripts).map(([name, command]) => ({
-    name,
-    command,
-    workspace,
-    packagePath: relativePath,
-  }));
+  return Object.entries(pkg.scripts as Record<string, string>).map(
+    ([name, command]) => ({
+      name,
+      command,
+      workspace,
+      packagePath: relativePath,
+    })
+  );
 }
 
-export function toAbsolutePath(cwd, filePath) {
-  return filePath.startsWith("/") ? filePath : join(cwd, filePath);
-}
-
-export function discoverScriptsFromFile(cwd, filePath) {
+export function discoverScriptsFromFile(
+  cwd: string,
+  filePath: string
+): PackageScript[] {
   const absolutePath = toAbsolutePath(cwd, filePath);
   if (!fileExists(absolutePath)) return [];
   return extractScriptsFromPackage(cwd, absolutePath);
 }
 
-export function discoverScriptsFromAllPackages(cwd, rootPkgPath, rootScripts) {
+export function discoverScriptsFromAllPackages(
+  cwd: string,
+  rootPkgPath: string,
+  rootScripts: PackageScript[]
+): PackageScript[] {
   const nestedScripts = findPackageJsonFiles(cwd, 0, 5)
-    .filter((pkgPath) => pkgPath !== rootPkgPath)
-    .flatMap((pkgPath) => extractScriptsFromPackage(cwd, pkgPath));
+    .filter((pkgPath: string) => pkgPath !== rootPkgPath)
+    .flatMap((pkgPath: string) => extractScriptsFromPackage(cwd, pkgPath));
 
   return [...rootScripts, ...nestedScripts];
 }
 
-export function discoverScriptsFromWorkspaces(cwd, patterns, rootScripts) {
+export function discoverScriptsFromWorkspaces(
+  cwd: string,
+  patterns: string[],
+  rootScripts: PackageScript[]
+): PackageScript[] {
   const workspaceScripts = expandWorkspaces(cwd, patterns)
-    .map((dir) => join(dir, "package.json"))
-    .flatMap((pkgPath) => extractScriptsFromPackage(cwd, pkgPath));
+    .map((dir: string) => join(dir, "package.json"))
+    .flatMap((pkgPath: string) => extractScriptsFromPackage(cwd, pkgPath));
 
   return [...rootScripts, ...workspaceScripts];
 }
 
-export function discoverScripts(cwdOrFilePath) {
-  const cwd = os.getcwd()[0];
+export function discoverScripts(cwdOrFilePath?: string): PackageScript[] {
+  const cwd = getCwd();
 
   const isSpecificFile = cwdOrFilePath && cwdOrFilePath.endsWith(".json");
   if (isSpecificFile) {
@@ -219,7 +122,7 @@ export function discoverScripts(cwdOrFilePath) {
   if (!fileExists(rootPkgPath)) return [];
 
   const content = readFile(rootPkgPath);
-  const pkg = parseJson(content);
+  const pkg = parseJson<Record<string, unknown>>(content || "");
   if (!pkg) return [];
 
   const rootScripts = extractScriptsFromPackage(cwd, rootPkgPath);
@@ -233,7 +136,7 @@ export function discoverScripts(cwdOrFilePath) {
   return discoverScriptsFromWorkspaces(cwd, patterns, rootScripts);
 }
 
-export function detectPackageManager(cwd) {
+export function detectPackageManager(cwd: string): PackageManager {
   if (fileExists(join(cwd, "bun.lockb")) || fileExists(join(cwd, "bun.lock")))
     return "bun";
   if (fileExists(join(cwd, "pnpm-lock.yaml"))) return "pnpm";
@@ -241,7 +144,10 @@ export function detectPackageManager(cwd) {
   return "npm";
 }
 
-export function buildRunCommand(script, pm) {
+export function buildRunCommand(
+  script: PackageScript,
+  pm: PackageManager
+): string[] {
   const isRootPackage = script.packagePath === "package.json";
 
   if (pm === "pnpm") {
@@ -267,11 +173,23 @@ export function buildRunCommand(script, pm) {
     : ["npm", "run", script.name, "--workspace=" + script.workspace];
 }
 
-export function createEntry(path, value, key, filePath, workspace) {
+export function createEntry(
+  path: string,
+  value: string,
+  key: string,
+  filePath: string,
+  workspace: string
+): JsonEntry {
   return { path, value, key, filePath, workspace };
 }
 
-export function flattenValue(value, path, key, filePath, workspace) {
+export function flattenValue(
+  value: unknown,
+  path: string,
+  key: string,
+  filePath: string,
+  workspace: string
+): JsonEntry[] {
   if (value === null) {
     return [createEntry(path, "null", key, filePath, workspace)];
   }
@@ -282,27 +200,33 @@ export function flattenValue(value, path, key, filePath, workspace) {
       `Array(${value.length})`,
       key,
       filePath,
-      workspace,
+      workspace
     );
-    const childEntries = value.flatMap((item, i) =>
-      flattenValue(item, `${path}[${i}]`, `[${i}]`, filePath, workspace),
+    const childEntries = value.flatMap((item: unknown, i: number) =>
+      flattenValue(item, `${path}[${i}]`, `[${i}]`, filePath, workspace)
     );
     return [selfEntry, ...childEntries];
   }
 
   const isObject = typeof value === "object";
   if (isObject) {
-    const keys = Object.keys(value);
+    const keys = Object.keys(value as Record<string, unknown>);
     const selfEntry = createEntry(
       path,
       `Object(${keys.length})`,
       key,
       filePath,
-      workspace,
+      workspace
     );
-    const childEntries = keys.flatMap((k) => {
+    const childEntries = keys.flatMap((k: string) => {
       const newPath = path ? `${path}.${k}` : k;
-      return flattenValue(value[k], newPath, k, filePath, workspace);
+      return flattenValue(
+        (value as Record<string, unknown>)[k],
+        newPath,
+        k,
+        filePath,
+        workspace
+      );
     });
     return [selfEntry, ...childEntries];
   }
@@ -310,57 +234,79 @@ export function flattenValue(value, path, key, filePath, workspace) {
   return [createEntry(path, String(value), key, filePath, workspace)];
 }
 
-export function flattenJson(obj, prefix, filePath, workspace) {
-  return Object.keys(obj).flatMap((k) =>
-    flattenValue(obj[k], k, k, filePath, workspace),
+export function flattenJson(
+  obj: Record<string, unknown>,
+  prefix: string,
+  filePath: string,
+  workspace: string
+): JsonEntry[] {
+  return Object.keys(obj).flatMap((k: string) =>
+    flattenValue(obj[k], k, k, filePath, workspace)
   );
 }
 
-export function parseJsonFile(filePath, cwd) {
+export function parseJsonFile(
+  filePath: string,
+  cwd: string
+): { json: Record<string, unknown>; relativePath: string; workspace: string } | null {
   if (!fileExists(filePath)) return null;
 
   const content = readFile(filePath);
-  const json = parseJson(content);
+  const json = parseJson<Record<string, unknown>>(content || "");
   if (!json) return null;
 
   const relativePath = relative(cwd, filePath);
-  const workspace = json.name || relativePath;
+  const workspace = (json.name as string) || relativePath;
 
   return { json, relativePath, workspace };
 }
 
-export function discoverJsonEntries(filePaths, cwd) {
+export function discoverJsonEntries(
+  filePaths: string[],
+  cwd: string
+): JsonEntry[] {
   return filePaths
-    .map((filePath) => parseJsonFile(filePath, cwd))
-    .filter((result) => result !== null)
+    .map((filePath: string) => parseJsonFile(filePath, cwd))
+    .filter(
+      (
+        result
+      ): result is {
+        json: Record<string, unknown>;
+        relativePath: string;
+        workspace: string;
+      } => result !== null
+    )
     .flatMap(({ json, relativePath, workspace }) =>
-      flattenJson(json, "", relativePath, workspace),
+      flattenJson(json, "", relativePath, workspace)
     );
 }
 
-export function discoverAllPackageJsons(cwd) {
+export function discoverAllPackageJsons(cwd: string): JsonEntry[] {
   const paths = findPackageJsonFiles(cwd, 0, 5);
   return discoverJsonEntries(paths, cwd);
 }
 
-export function discoverFilesByNameEntries(fileName, cwd) {
+export function discoverFilesByNameEntries(
+  fileName: string,
+  cwd: string
+): JsonEntry[] {
   const paths = findFilesByName(cwd, fileName, 0, 5);
   return discoverJsonEntries(paths, cwd);
 }
 
-export function getNestedValue(obj, path) {
-  return path.split(".").reduce((current, key) => {
-    const isNullish = current === null || current === undefined;
-    return isNullish ? undefined : current[key];
-  }, obj);
-}
-
-export function getSelectionPrefix(index, selectedIndex) {
+export function getSelectionPrefix(
+  index: number,
+  selectedIndex: number
+): string {
   const isSelected = index === selectedIndex;
   return isSelected ? `${GREEN}>${RESET}` : " ";
 }
 
-export function formatScriptLine(match, index, selectedIndex) {
+export function formatScriptLine(
+  match: FuzzyMatch<PackageScript>,
+  index: number,
+  selectedIndex: number
+): string[] {
   const script = match.item;
   const prefix = getSelectionPrefix(index, selectedIndex);
   const nameLine = `${prefix} ${script.name} ${DIM}[${script.workspace}]${RESET}`;
@@ -368,7 +314,11 @@ export function formatScriptLine(match, index, selectedIndex) {
   return [nameLine, commandLine];
 }
 
-export function formatJsonLine(match, index, selectedIndex) {
+export function formatJsonLine(
+  match: FuzzyMatch<JsonEntry>,
+  index: number,
+  selectedIndex: number
+): string[] {
   const entry = match.item;
   const prefix = getSelectionPrefix(index, selectedIndex);
   const pathLine = `${prefix} ${entry.path} ${DIM}[${entry.workspace}]${RESET}`;
@@ -376,13 +326,17 @@ export function formatJsonLine(match, index, selectedIndex) {
   return [pathLine, valueLine];
 }
 
-export function buildRemainingLines(matches) {
+export function buildRemainingLines<T>(matches: FuzzyMatch<T>[]): string[] {
   const remaining = matches.length - MAX_VISIBLE;
   const hasMore = remaining > 0;
   return hasMore ? [`${DIM}`, `... ${remaining} more${RESET}`] : [];
 }
 
-export function renderList(state, title, formatLine) {
+export function renderList<T>(
+  state: InteractiveState<T>,
+  title: string,
+  formatLine: (match: FuzzyMatch<T>, index: number, selectedIndex: number) => string[]
+): void {
   const visibleMatches = state.matches.slice(0, MAX_VISIBLE);
 
   const headerLines = [
@@ -392,8 +346,8 @@ export function renderList(state, title, formatLine) {
     "",
   ];
 
-  const itemLines = visibleMatches.flatMap((match, i) =>
-    formatLine(match, i, state.selectedIndex),
+  const itemLines = visibleMatches.flatMap((match: FuzzyMatch<T>, i: number) =>
+    formatLine(match, i, state.selectedIndex)
   );
 
   const remainingLines = buildRemainingLines(state.matches);
@@ -403,45 +357,53 @@ export function renderList(state, title, formatLine) {
   std.out.flush();
 }
 
-export function renderScripts(state) {
+export function renderScripts(state: InteractiveState<PackageScript>): void {
   renderList(state, "Fuzzy NPM Scripts", formatScriptLine);
 }
 
-export function renderJson(state, title) {
+export function renderJson(
+  state: InteractiveState<JsonEntry>,
+  title: string
+): void {
   renderList(state, title, formatJsonLine);
 }
 
-export function updateState(state, query, items, getText) {
+export function updateState<T>(
+  state: InteractiveState<T>,
+  query: string,
+  items: T[],
+  getText: (item: T) => string
+): InteractiveState<T> {
   const matches = fuzzySearch(items, query, getText);
   const clampedIndex = Math.min(
     state.selectedIndex,
-    Math.max(0, matches.length - 1),
+    Math.max(0, matches.length - 1)
   );
   return { query, selectedIndex: clampedIndex, matches, items };
 }
 
-export function matchesQuery(script, lowerQuery) {
+export function matchesQuery(script: PackageScript, lowerQuery: string): boolean {
   if (!lowerQuery) return true;
   const nameMatches = script.name.toLowerCase().includes(lowerQuery);
   const workspaceMatches = script.workspace.toLowerCase().includes(lowerQuery);
   return nameMatches || workspaceMatches;
 }
 
-export function formatCompletion(script) {
+export function formatCompletion(script: PackageScript): string {
   return `${script.name}:[${script.workspace}] ${script.command}`;
 }
 
-export function runCompletions(query, scripts) {
+export function runCompletions(query: string, scripts: PackageScript[]): void {
   const lowerQuery = (query || "").toLowerCase();
 
   scripts
-    .filter((s) => matchesQuery(s, lowerQuery))
+    .filter((s: PackageScript) => matchesQuery(s, lowerQuery))
     .map(formatCompletion)
-    .forEach((line) => print(line));
+    .forEach((line: string) => print(line));
 }
 
-export function executeScript(script) {
-  const cwd = os.getcwd()[0];
+export function executeScript(script: PackageScript): void {
+  const cwd = getCwd();
   const pm = detectPackageManager(cwd);
   const cmd = buildRunCommand(script, pm);
 
@@ -450,46 +412,56 @@ export function executeScript(script) {
   std.out.puts(`${CYAN}Running: ${cmd.join(" ")}${RESET}\n\n`);
   std.out.flush();
 
-  os.exec(cmd);
+  spawnCommand(cmd);
 }
 
-export function exitWithError(message) {
+export function exitWithError(message: string): never {
   std.err.puts(`${YELLOW}Error: ${message}${RESET}\n`);
   std.exit(1);
 }
 
-export function validateExecInputs(filePath, execKey) {
+export function validateRunInputs(filePath: string | undefined, runKey: string | undefined): void {
   if (!filePath) exitWithError("No file path provided");
-  if (!execKey) exitWithError("No key provided");
+  if (!runKey) exitWithError("No key provided");
 }
 
-export function loadAndParseJson(absolutePath, filePath) {
+export function loadAndParseJson(
+  absolutePath: string,
+  filePath: string
+): Record<string, unknown> {
   const content = readFile(absolutePath);
   if (!content) exitWithError(`Could not read ${filePath}`);
 
-  const json = parseJson(content);
+  const json = parseJson<Record<string, unknown>>(content);
   if (!json) exitWithError(`Invalid JSON in ${filePath}`);
 
   return json;
 }
 
-export function validateExecKey(value, execKey, filePath) {
+export function validateRunKey(
+  value: unknown,
+  runKey: string,
+  filePath: string
+): void {
   const isUndefined = value === undefined;
-  if (isUndefined) exitWithError(`Key "${execKey}" not found in ${filePath}`);
+  if (isUndefined) exitWithError(`Key "${runKey}" not found in ${filePath}`);
 
   const isNotString = typeof value !== "string";
   if (isNotString)
-    exitWithError(`Cannot execute "${execKey}" - value is not a string`);
+    exitWithError(`Cannot run "${runKey}" - value is not a string`);
 
-  const isNotScript = !execKey.startsWith("scripts.");
+  const isNotScript = !runKey.startsWith("scripts.");
   if (isNotScript)
     exitWithError(
-      `Cannot execute "${execKey}" - not a script (must start with "scripts.")`,
+      `Cannot run "${runKey}" - not a script (must start with "scripts.")`
     );
 }
 
-export function buildSimpleRunCommand(pm, scriptName) {
-  const commands = {
+export function buildSimpleRunCommand(
+  pm: PackageManager,
+  scriptName: string
+): string[] {
+  const commands: Record<PackageManager, string[]> = {
     pnpm: ["pnpm", "run", scriptName],
     yarn: ["yarn", "run", scriptName],
     bun: ["bun", "run", scriptName],
@@ -498,17 +470,17 @@ export function buildSimpleRunCommand(pm, scriptName) {
   return commands[pm] || commands.npm;
 }
 
-export function executeKey(filePath, execKey) {
-  validateExecInputs(filePath, execKey);
+export function runKey(filePath: string | undefined, runKeyValue: string | undefined): void {
+  validateRunInputs(filePath, runKeyValue);
 
-  const cwd = os.getcwd()[0];
-  const absolutePath = toAbsolutePath(cwd, filePath);
-  const json = loadAndParseJson(absolutePath, filePath);
-  const value = getNestedValue(json, execKey);
+  const cwd = getCwd();
+  const absolutePath = toAbsolutePath(cwd, filePath!);
+  const json = loadAndParseJson(absolutePath, filePath!);
+  const value = getNestedValue(json, runKeyValue!);
 
-  validateExecKey(value, execKey, filePath);
+  validateRunKey(value, runKeyValue!, filePath!);
 
-  const scriptName = execKey.substring("scripts.".length);
+  const scriptName = runKeyValue!.substring("scripts.".length);
   const packageDir = dirname(absolutePath);
   const pm = detectPackageManager(packageDir);
   const cmd = buildSimpleRunCommand(pm, scriptName);
@@ -517,11 +489,11 @@ export function executeKey(filePath, execKey) {
   std.out.puts(`${CYAN}From: ${filePath}${RESET}\n\n`);
   std.out.flush();
 
-  os.chdir(packageDir);
-  os.exec(cmd);
+  changeDir(packageDir);
+  spawnCommand(cmd);
 }
 
-export function createDefaultOptions() {
+export function createDefaultOptions(): ParsedOptions {
   return {
     help: false,
     version: false,
@@ -532,52 +504,52 @@ export function createDefaultOptions() {
     widgetQuery: "",
     mode: "scripts",
     filePath: undefined,
-    execKey: undefined,
+    runKey: undefined,
     initMode: "widget",
   };
 }
 
-export function isHelpArg(arg) {
+export function isHelpArg(arg: string): boolean {
   return ["help", "h", "--help", "-h"].includes(arg);
 }
 
-export function isVersionArg(arg) {
+export function isVersionArg(arg: string): boolean {
   return ["--version", "-v"].includes(arg);
 }
 
-export function isQuitArg(arg) {
+export function isQuitArg(arg: string): boolean {
   return ["quit", "q"].includes(arg);
 }
 
-export function isCompletionsArg(arg) {
+export function isCompletionsArg(arg: string): boolean {
   return ["completions", "--completions"].includes(arg);
 }
 
-export function isFindArg(arg) {
+export function isFindArg(arg: string): boolean {
   return ["find", "f"].includes(arg);
 }
 
-export function isPathArg(arg) {
+export function isPathArg(arg: string): boolean {
   return ["path", "p"].includes(arg);
 }
 
-export function isExecArg(arg) {
-  return ["exec", "e"].includes(arg);
+export function isRunArg(arg: string): boolean {
+  return ["run", "r"].includes(arg);
 }
 
-export function isWidgetArg(arg) {
+export function isWidgetArg(arg: string): boolean {
   return ["--widget", "-w"].includes(arg);
 }
 
-export function hasNextArg(args, i) {
+export function hasNextArg(args: string[], i: number): boolean {
   return i + 1 < args.length;
 }
 
-export function getNextArg(args, i) {
+export function getNextArg(args: string[], i: number): string | undefined {
   return hasNextArg(args, i) ? args[i + 1] : undefined;
 }
 
-export function parseArgs(args) {
+export function parseArgs(args: string[]): ParsedOptions {
   const options = createDefaultOptions();
   let i = 0;
 
@@ -625,15 +597,15 @@ export function parseArgs(args) {
         options.filePath = nextArg;
         i++;
       }
-    } else if (isExecArg(arg)) {
-      options.mode = "exec";
+    } else if (isRunArg(arg)) {
+      options.mode = "run-key";
       if (nextArg) {
         options.filePath = nextArg;
         i++;
       }
-      const execKeyArg = getNextArg(args, i);
-      if (execKeyArg) {
-        options.execKey = execKeyArg;
+      const runKeyArg = getNextArg(args, i);
+      if (runKeyArg) {
+        options.runKey = runKeyArg;
         i++;
       }
     } else if (arg.endsWith(".json")) {
@@ -646,25 +618,25 @@ export function parseArgs(args) {
   return options;
 }
 
-export function readKey() {
+export function readKeyInput(): Uint8Array | null {
   const buf = new Uint8Array(16);
   const n = os.read(std.in.fileno(), buf.buffer, 0, buf.length);
   const hasData = n > 0;
   return hasData ? buf.slice(0, n) : null;
 }
 
-export function isExitKey(byte0, key) {
+export function isExitKey(byte0: number, key: Uint8Array): boolean {
   const isCtrlC = byte0 === KEY_CODES.CTRL_C;
   const isEscape = byte0 === KEY_CODES.ESCAPE && key.length === 1;
   const isQKey = byte0 === KEY_CODES.Q;
   return isCtrlC || isEscape || isQKey;
 }
 
-export function isEnterKey(byte0) {
+export function isEnterKey(byte0: number): boolean {
   return byte0 === KEY_CODES.ENTER_CR || byte0 === KEY_CODES.ENTER_LF;
 }
 
-export function isArrowSequence(byte0, key) {
+export function isArrowSequence(byte0: number, key: Uint8Array): boolean {
   const isEscape = byte0 === KEY_CODES.ESCAPE;
   const hasEnoughBytes = key.length >= 3;
   const isNormalMode = key[1] === KEY_CODES.BRACKET;
@@ -672,15 +644,18 @@ export function isArrowSequence(byte0, key) {
   return isEscape && hasEnoughBytes && (isNormalMode || isAppMode);
 }
 
-export function isBackspaceKey(byte0) {
+export function isBackspaceKey(byte0: number): boolean {
   return byte0 === KEY_CODES.DELETE || byte0 === KEY_CODES.BACKSPACE;
 }
 
-export function isPrintableChar(byte0) {
+export function isPrintableChar(byte0: number): boolean {
   return byte0 >= KEY_CODES.PRINTABLE_START && byte0 < KEY_CODES.PRINTABLE_END;
 }
 
-export function createInitialState(items, getText) {
+export function createInitialState<T>(
+  items: T[],
+  getText: (item: T) => string
+): InteractiveState<T> {
   return {
     query: "",
     selectedIndex: 0,
@@ -689,13 +664,18 @@ export function createInitialState(items, getText) {
   };
 }
 
-export function cleanupTerminal() {
+export function cleanupTerminal(): void {
   std.out.puts(SHOW_CURSOR);
   std.out.puts(CLEAR_SCREEN);
   os.ttySetRaw(std.in.fileno(), false);
 }
 
-export function handleArrowKey(state, key, render, title) {
+export function handleArrowKey<T>(
+  state: InteractiveState<T>,
+  key: Uint8Array,
+  render: (state: InteractiveState<T>, title: string) => void,
+  title: string
+): InteractiveState<T> {
   const isUpArrow = key[2] === KEY_CODES.ARROW_UP;
   const isDownArrow = key[2] === KEY_CODES.ARROW_DOWN;
 
@@ -705,7 +685,7 @@ export function handleArrowKey(state, key, render, title) {
   } else if (isDownArrow) {
     state.selectedIndex = Math.min(
       state.matches.length - 1,
-      state.selectedIndex + 1,
+      state.selectedIndex + 1
     );
     render(state, title);
   }
@@ -713,7 +693,13 @@ export function handleArrowKey(state, key, render, title) {
   return state;
 }
 
-export function handleBackspace(state, items, getText, render, title) {
+export function handleBackspace<T>(
+  state: InteractiveState<T>,
+  items: T[],
+  getText: (item: T) => string,
+  render: (state: InteractiveState<T>, title: string) => void,
+  title: string
+): InteractiveState<T> {
   const hasQuery = state.query.length > 0;
   if (!hasQuery) return state;
 
@@ -723,14 +709,14 @@ export function handleBackspace(state, items, getText, render, title) {
   return newState;
 }
 
-export function handlePrintableChar(
-  state,
-  byte0,
-  items,
-  getText,
-  render,
-  title,
-) {
+export function handlePrintableChar<T>(
+  state: InteractiveState<T>,
+  byte0: number,
+  items: T[],
+  getText: (item: T) => string,
+  render: (state: InteractiveState<T>, title: string) => void,
+  title: string
+): InteractiveState<T> {
   const char = String.fromCharCode(byte0);
   const newQuery = state.query + char;
   const newState = updateState(state, newQuery, items, getText);
@@ -738,7 +724,12 @@ export function handlePrintableChar(
   return newState;
 }
 
-export function runInteractive(items, getText, render, title) {
+export function runInteractive<T>(
+  items: T[],
+  getText: (item: T) => string,
+  render: (state: InteractiveState<T>, title: string) => void,
+  title: string
+): FuzzyMatch<T> | null {
   const hasNoItems = items.length === 0;
   if (hasNoItems) {
     std.err.puts(`${YELLOW}No entries found${RESET}\n`);
@@ -752,7 +743,7 @@ export function runInteractive(items, getText, render, title) {
   render(state, title);
 
   while (true) {
-    const key = readKey();
+    const key = readKeyInput();
     if (!key) continue;
 
     const byte0 = key[0];
@@ -783,64 +774,14 @@ export function runInteractive(items, getText, render, title) {
   }
 }
 
-export function getHomeDir() {
-  return std.getenv("HOME") || "/tmp";
-}
-
-export function detectShell() {
-  const shell = std.getenv("SHELL") || "";
-  if (shell.includes("zsh")) return "zsh";
-  if (shell.includes("bash")) return "bash";
-  if (shell.includes("fish")) return "fish";
-  return "unknown";
-}
-
-export function getShellConfigFile(shell) {
-  const home = getHomeDir();
-
-  if (shell === "zsh") {
-    const zshrc = join(home, ".zshrc");
-    if (fileExists(zshrc)) return zshrc;
-    return join(home, ".zprofile");
-  }
-
-  if (shell === "bash") {
-    const bashrc = join(home, ".bashrc");
-    if (fileExists(bashrc)) return bashrc;
-    return join(home, ".bash_profile");
-  }
-
-  if (shell === "fish") {
-    return join(home, ".config", "fish", "config.fish");
-  }
-
-  return "";
-}
-
-export function writeFile(path, content) {
-  const file = std.open(path, "w");
-  if (!file) return false;
-  file.puts(content);
-  file.close();
-  return true;
-}
-
-export function appendFile(path, content) {
-  const file = std.open(path, "a");
-  if (!file) return false;
-  file.puts(content);
-  file.close();
-  return true;
-}
-
-export function runInit(initMode) {
+export function runInit(initMode: "widget" | "native"): void {
   print(`\n${BOLD}${CYAN}fjsf shell integration setup${RESET}\n`);
 
   const shell = detectShell();
 
   if (shell === "unknown") {
     std.err.puts(
-      `${YELLOW}Unable to detect shell type. Supported: bash, zsh, fish${RESET}\n`,
+      `${YELLOW}Unable to detect shell type. Supported: bash, zsh, fish${RESET}\n`
     );
     std.exit(1);
   }
@@ -860,14 +801,14 @@ export function runInit(initMode) {
   const fjsfDir = join(home, ".fjsf");
 
   if (!fileExists(fjsfDir)) {
-    os.mkdir(fjsfDir);
+    makeDir(fjsfDir);
   }
 
   print(`${DIM}fjsf directory: ${fjsfDir}${RESET}\n`);
 
   const integrationFile = join(fjsfDir, `init.${shell}`);
 
-  const scripts = SHELL_SCRIPTS[shell];
+  const scripts = SHELL_SCRIPTS[shell as "zsh" | "bash" | "fish"];
   if (!scripts) {
     std.err.puts(`${YELLOW}No shell scripts available for ${shell}${RESET}\n`);
     std.exit(1);
@@ -904,81 +845,34 @@ export function runInit(initMode) {
 
   print(`\n${BOLD}${GREEN}Setup complete!${RESET}`);
   print(
-    `${DIM}Restart your shell or run: ${RESET}${BOLD}source ${configFile}${RESET}\n`,
+    `${DIM}Restart your shell or run: ${RESET}${BOLD}source ${configFile}${RESET}\n`
   );
 
   if (initMode === "native") {
     print(
-      `${CYAN}Using native completions mode (works with fzf-tab)${RESET}\n`,
+      `${CYAN}Using native completions mode (works with fzf-tab)${RESET}\n`
     );
   }
 }
 
 const WIDGET_MAX_VISIBLE = 8;
 
-export function formatWidgetLine(match, index, selectedIndex) {
+export function formatWidgetLine(
+  match: FuzzyMatch<PackageScript>,
+  index: number,
+  selectedIndex: number
+): string {
   const script = match.item;
   const isSelected = index === selectedIndex;
   const prefix = isSelected ? `${GREEN}❯${RESET}` : " ";
   return `${prefix} ${script.name} ${DIM}[${script.workspace}]${RESET}`;
 }
 
-const isHighSurrogate = (code) => code >= 0xd800 && code < 0xdc00;
-
-const isLowSurrogate = (code) => code >= 0xdc00 && code < 0xe000;
-
-const decodeSurrogatePair = (high, low) =>
-  ((high - 0xd800) << 10) + (low - 0xdc00) + 0x10000;
-
-const encodeOneByteChar = (code) => [code];
-
-const encodeTwoByteChar = (code) => [0xc0 | (code >> 6), 0x80 | (code & 0x3f)];
-
-const encodeThreeByteChar = (code) => [
-  0xe0 | (code >> 12),
-  0x80 | ((code >> 6) & 0x3f),
-  0x80 | (code & 0x3f),
-];
-
-const encodeFourByteChar = (code) => [
-  0xf0 | (code >> 18),
-  0x80 | ((code >> 12) & 0x3f),
-  0x80 | ((code >> 6) & 0x3f),
-  0x80 | (code & 0x3f),
-];
-
-export function stringToUtf8(str) {
-  const bytes = [];
-  let i = 0;
-
-  while (i < str.length) {
-    const code = str.charCodeAt(i);
-    const nextCode = str.charCodeAt(i + 1);
-    const isSurrogatePair = isHighSurrogate(code) && isLowSurrogate(nextCode);
-
-    if (code < 0x80) {
-      bytes.push(...encodeOneByteChar(code));
-    } else if (code < 0x800) {
-      bytes.push(...encodeTwoByteChar(code));
-    } else if (isSurrogatePair) {
-      bytes.push(...encodeFourByteChar(decodeSurrogatePair(code, nextCode)));
-      i++;
-    } else {
-      bytes.push(...encodeThreeByteChar(code));
-    }
-
-    i++;
-  }
-
-  return new Uint8Array(bytes);
-}
-
-export function ttyWrite(fd, str) {
-  const buf = stringToUtf8(str);
-  os.write(fd, buf.buffer, 0, buf.length);
-}
-
-export function renderWidget(ttyFd, state, lastLineCount) {
+export function renderWidget(
+  ttyFd: number,
+  state: InteractiveState<PackageScript>,
+  lastLineCount: number
+): number {
   for (let i = 0; i < lastLineCount; i++) {
     ttyWrite(ttyFd, MOVE_UP);
     ttyWrite(ttyFd, CLEAR_LINE);
@@ -987,7 +881,6 @@ export function renderWidget(ttyFd, state, lastLineCount) {
   const hasNoMatches = state.matches.length === 0;
   if (hasNoMatches) {
     ttyWrite(ttyFd, `\n${DIM}No matches${RESET}`);
-    ttyWrite(ttyFd, RESTORE_CURSOR);
     return 1;
   }
 
@@ -1023,7 +916,7 @@ export function renderWidget(ttyFd, state, lastLineCount) {
   return lineCount;
 }
 
-export function createWidgetContext() {
+export function createWidgetContext(): WidgetContext | null {
   const ttyFd = os.open("/dev/tty", os.O_WRONLY);
   const isValid = ttyFd >= 0;
   if (!isValid) return null;
@@ -1035,7 +928,7 @@ export function createWidgetContext() {
   return { ttyFd, stdinFd, lineCount: 0 };
 }
 
-export function cleanupWidgetContext(ctx) {
+export function cleanupWidgetContext(ctx: WidgetContext | null): void {
   if (!ctx) return;
 
   for (let i = 0; i < ctx.lineCount; i++) {
@@ -1048,13 +941,16 @@ export function cleanupWidgetContext(ctx) {
   os.close(ctx.ttyFd);
 }
 
-export function readWidgetKey(stdinFd) {
+export function readWidgetKey(stdinFd: number): Uint8Array | null {
   const buf = new Uint8Array(16);
   const n = os.read(stdinFd, buf.buffer, 0, buf.length);
   return n > 0 ? buf.slice(0, n) : null;
 }
 
-export function handleWidgetArrowKey(state, key) {
+export function handleWidgetArrowKey(
+  state: InteractiveState<PackageScript>,
+  key: Uint8Array
+): number {
   const isUpArrow = key[2] === KEY_CODES.ARROW_UP;
   const isDownArrow = key[2] === KEY_CODES.ARROW_DOWN;
 
@@ -1067,7 +963,10 @@ export function handleWidgetArrowKey(state, key) {
   return state.selectedIndex;
 }
 
-export function handleWidgetBackspace(state, scripts) {
+export function handleWidgetBackspace(
+  state: InteractiveState<PackageScript>,
+  scripts: PackageScript[]
+): InteractiveState<PackageScript> {
   const hasQuery = state.query.length > 0;
   if (!hasQuery) return state;
 
@@ -1075,13 +974,20 @@ export function handleWidgetBackspace(state, scripts) {
   return updateState(state, newQuery, scripts, getScriptText);
 }
 
-export function handleWidgetPrintable(state, byte0, scripts) {
+export function handleWidgetPrintable(
+  state: InteractiveState<PackageScript>,
+  byte0: number,
+  scripts: PackageScript[]
+): InteractiveState<PackageScript> {
   const char = String.fromCharCode(byte0);
   const newQuery = state.query + char;
   return updateState(state, newQuery, scripts, getScriptText);
 }
 
-export function outputWidgetSelection(state, executeDirectly) {
+export function outputWidgetSelection(
+  state: InteractiveState<PackageScript>,
+  executeDirectly: boolean
+): void {
   const hasSelection = state.matches.length > 0;
   if (!hasSelection) return;
 
@@ -1095,7 +1001,10 @@ export function outputWidgetSelection(state, executeDirectly) {
   }
 }
 
-export function runWidget(scripts, initialQuery) {
+export function runWidget(
+  scripts: PackageScript[],
+  initialQuery: string
+): void {
   const hasNoScripts = scripts.length === 0;
   if (hasNoScripts) {
     std.exit(0);
@@ -1152,7 +1061,7 @@ export function runWidget(scripts, initialQuery) {
   }
 }
 
-export function main() {
+export function main(): void {
   const args = scriptArgs.slice(1);
   const options = parseArgs(args);
 
@@ -1175,10 +1084,10 @@ export function main() {
     return;
   }
 
-  const cwd = os.getcwd()[0];
+  const cwd = getCwd();
 
-  if (options.mode === "exec") {
-    executeKey(options.filePath, options.execKey);
+  if (options.mode === "run-key") {
+    runKey(options.filePath, options.runKey);
     return;
   }
 
@@ -1188,9 +1097,9 @@ export function main() {
     const title = `Find: ${fileName}`;
     runInteractive(
       entries,
-      (e) => `${e.path} ${e.workspace}`,
+      (e: JsonEntry) => `${e.path} ${e.workspace}`,
       renderJson,
-      title,
+      title
     );
     return;
   }
@@ -1207,9 +1116,9 @@ export function main() {
     const title = `Path: ${options.filePath}`;
     runInteractive(
       entries,
-      (e) => `${e.path} ${e.workspace}`,
+      (e: JsonEntry) => `${e.path} ${e.workspace}`,
       renderJson,
-      title,
+      title
     );
     return;
   }
@@ -1230,7 +1139,7 @@ export function main() {
     scripts,
     getScriptText,
     renderScripts,
-    "Fuzzy NPM Scripts",
+    "Fuzzy NPM Scripts"
   );
 
   if (selected) {

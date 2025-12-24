@@ -7,3 +7,4 @@ coverage
 bun.lockb
 test-fixtures
 test-cache-fixtures
+tmp
