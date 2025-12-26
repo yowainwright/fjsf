@@ -67,9 +67,10 @@ jobs:
 
       - name: Install QuickJS
         run: |
-          curl -L -o /usr/local/bin/qjsc https://github.com/quickjs-ng/quickjs/releases/latest/download/qjsc-linux-x86_64
-          chmod +x /usr/local/bin/qjsc
-          qjsc -h | head -3
+          mkdir -p $HOME/.local/bin
+          curl -L -o $HOME/.local/bin/qjsc https://github.com/quickjs-ng/quickjs/releases/latest/download/qjsc-linux-x86_64
+          chmod +x $HOME/.local/bin/qjsc
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: bun install
@@ -96,9 +97,10 @@ jobs:
 
       - name: Install QuickJS
         run: |
-          curl -L -o /usr/local/bin/qjsc https://github.com/quickjs-ng/quickjs/releases/latest/download/qjsc-linux-x86_64
-          chmod +x /usr/local/bin/qjsc
-          qjsc -h | head -3
+          mkdir -p $HOME/.local/bin
+          curl -L -o $HOME/.local/bin/qjsc https://github.com/quickjs-ng/quickjs/releases/latest/download/qjsc-linux-x86_64
+          chmod +x $HOME/.local/bin/qjsc
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: bun install
