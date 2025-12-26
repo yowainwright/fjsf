@@ -86,9 +86,14 @@ jobs:
 
       - name: Compile native binary
         run: |
-          find $HOME/.local -name "quickjs*.h" 2>/dev/null || true
           $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
-          gcc -o bin/fjsf-qjs dist/cli.c -I/tmp/quickjs -L$HOME/.local/lib -lqjs -lm -lpthread -ldl
+          gcc -o bin/fjsf-qjs dist/cli.c \
+            /tmp/quickjs/quickjs.c \
+            /tmp/quickjs/quickjs-libc.c \
+            /tmp/quickjs/cutils.c \
+            /tmp/quickjs/libunicode.c \
+            /tmp/quickjs/libregexp.c \
+            -I/tmp/quickjs -lm -lpthread -ldl -DCONFIG_VERSION=\"0.8.0\"
           chmod +x bin/fjsf-qjs
 
       - name: Verify binary
@@ -132,7 +137,13 @@ jobs:
       - name: Compile native binary
         run: |
           $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
-          gcc -o bin/fjsf-qjs dist/cli.c -I/tmp/quickjs -L$HOME/.local/lib -lqjs -lm -lpthread -ldl
+          gcc -o bin/fjsf-qjs dist/cli.c \
+            /tmp/quickjs/quickjs.c \
+            /tmp/quickjs/quickjs-libc.c \
+            /tmp/quickjs/cutils.c \
+            /tmp/quickjs/libunicode.c \
+            /tmp/quickjs/libregexp.c \
+            -I/tmp/quickjs -lm -lpthread -ldl -DCONFIG_VERSION=\"0.8.0\"
           chmod +x bin/fjsf-qjs
 
       - name: Verify binary

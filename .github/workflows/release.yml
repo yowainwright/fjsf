@@ -49,7 +49,13 @@ jobs:
       - name: Build QuickJS binary
         run: |
           $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
-          gcc -o ./dist/${{ matrix.artifact }} dist/cli.c -I/tmp/quickjs -L$HOME/.local/lib -lqjs -lm -lpthread -ldl
+          gcc -o ./dist/${{ matrix.artifact }} dist/cli.c \
+            /tmp/quickjs/quickjs.c \
+            /tmp/quickjs/quickjs-libc.c \
+            /tmp/quickjs/cutils.c \
+            /tmp/quickjs/libunicode.c \
+            /tmp/quickjs/libregexp.c \
+            -I/tmp/quickjs -lm -lpthread -ldl -DCONFIG_VERSION=\"0.8.0\"
           chmod +x ./dist/${{ matrix.artifact }}
           file ./dist/${{ matrix.artifact }}
 
