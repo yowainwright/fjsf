@@ -5,7 +5,7 @@ import { resolve, join } from "path";
 import { writeFileSync, mkdirSync, rmSync } from "fs";
 
 const TEST_DIR = resolve(process.cwd(), "tests/e2e/.test-executor");
-const FJSF_CLI = resolve(process.cwd(), "src/cli.ts");
+const FJSF_CLI = resolve(process.cwd(), "bin/fjsf-qjs");
 
 interface TestScenario {
   name: string;
@@ -31,7 +31,7 @@ const scenarios: TestScenario[] = [
         JSON.stringify(pkg, null, 2),
       );
     },
-    args: ["exec", "package.json", "scripts.hello"],
+    args: ["run", "package.json", "scripts.hello"],
     expectSuccess: true,
     description: "Execute a simple echo script",
     shouldOutputContain: ["Hello from script"],
@@ -50,7 +50,7 @@ const scenarios: TestScenario[] = [
         JSON.stringify(pkg, null, 2),
       );
     },
-    args: ["exec", "package.json", "scripts.fail"],
+    args: ["run", "package.json", "scripts.fail"],
     expectSuccess: false,
     description: "Execute a script that exits with non-zero code",
   },
@@ -68,7 +68,7 @@ const scenarios: TestScenario[] = [
         JSON.stringify(pkg, null, 2),
       );
     },
-    args: ["exec", "package.json", "scripts.version"],
+    args: ["run", "package.json", "scripts.version"],
     expectSuccess: true,
     description: "Execute a script that runs bun command",
   },
@@ -86,7 +86,7 @@ const scenarios: TestScenario[] = [
         JSON.stringify(pkg, null, 2),
       );
     },
-    args: ["exec", "package.json", "scripts.multi"],
+    args: ["run", "package.json", "scripts.multi"],
     expectSuccess: true,
     description: "Execute a script with multiple commands",
     shouldOutputContain: ["First", "Second"],
@@ -105,7 +105,7 @@ const scenarios: TestScenario[] = [
         JSON.stringify(pkg, null, 2),
       );
     },
-    args: ["exec", "package.json", "scripts.env"],
+    args: ["run", "package.json", "scripts.env"],
     expectSuccess: true,
     description: "Execute a script that uses environment variables",
   },
@@ -127,7 +127,7 @@ const runTest = (scenario: TestScenario): boolean => {
   setupTestDir();
   scenario.setup();
 
-  const result = spawnSync("bun", [FJSF_CLI, ...scenario.args], {
+  const result = spawnSync(FJSF_CLI, scenario.args, {
     cwd: TEST_DIR,
     encoding: "utf-8",
     stdio: "pipe",

@@ -4,6 +4,13 @@ export interface FuzzyMatch<T> {
   matches: number[];
 }
 
+export interface PackageScript {
+  name: string;
+  command: string;
+  workspace: string;
+  packagePath: string;
+}
+
 const calculateScore = (
   text: string,
   pattern: string,
@@ -74,8 +81,7 @@ const createFuzzyMatch = <T>(
   if (hasNoMatches) return null;
 
   const score = calculateScore(text, pattern, matches);
-  const match = Object.assign({}, { item, score, matches });
-  return match;
+  return { item, score, matches };
 };
 
 const compareScores = <T>(a: FuzzyMatch<T>, b: FuzzyMatch<T>): number =>
@@ -89,17 +95,11 @@ export const fuzzySearch = <T>(
   const hasNoPattern = !pattern;
 
   if (hasNoPattern) {
-    const mapper = (item: T): FuzzyMatch<T> => {
-      const match = Object.assign(
-        {},
-        {
-          item,
-          score: 0,
-          matches: [] as number[],
-        },
-      );
-      return match;
-    };
+    const mapper = (item: T): FuzzyMatch<T> => ({
+      item,
+      score: 0,
+      matches: [],
+    });
     return items.map(mapper);
   }
 
@@ -116,3 +116,5 @@ export const fuzzySearch = <T>(
   const sortedMatches = validMatches.sort(compareScores);
   return sortedMatches;
 };
+
+export const getScriptText = (script: PackageScript): string => script.name;

@@ -28,15 +28,8 @@
     "scripts/bin-wrapper.js"
   ],
   "scripts": {
-    "dev": "bun run src/cli.ts",
-    "build": "bun build src/cli.ts --outdir ./dist --target bun --minify",
-    "build:binary": "bun build src/cli.ts --compile --outfile ./dist/fjsf",
-    "build:binary:linux": "bun build src/cli.ts --compile --target=bun-linux-x64 --outfile ./dist/fjsf-linux-x64",
-    "build:binary:mac": "bun build src/cli.ts --compile --target=bun-darwin-x64 --outfile ./dist/fjsf-darwin-x64 && bun build src/cli.ts --compile --target=bun-darwin-arm64 --outfile ./dist/fjsf-darwin-arm64",
-    "build:binary:windows": "bun build src/cli.ts --compile --target=bun-windows-x64 --outfile ./dist/fjsf-windows-x64.exe",
-    "build:binary:all": "bun run build:binary:linux && bun run build:binary:mac && bun run build:binary:windows",
-    "build:qjs": "bash scripts/build-qjs.sh",
-    "build:qjs:bundle": "mkdir -p dist/qjs && bun build ./src/browser/index.ts --outfile dist/qjs/core.js --target browser --minify --format esm",
+    "dev": "bun run build:qjs && ./bin/fjsf-qjs",
+    "build:qjs": "bun scripts/build-qjs.ts",
     "test": "bun test tests/unit",
     "test:integration": "bun test tests/integration",
     "test:e2e": "bun run tests/e2e/scripts/run-all.ts",
@@ -45,7 +38,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "postinstall": "bun run scripts/install-hooks.ts",
-    "prepublishOnly": "bun run format:check && bun run lint && bun run typecheck && bun test && bun run build"
+    "prepublishOnly": "bun run format:check && bun run lint && bun run typecheck && bun test"
   },
   "devDependencies": {
     "@types/bun": "latest",

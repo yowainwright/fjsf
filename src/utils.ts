@@ -299,9 +299,17 @@ export function ttyWrite(fd: number, str: string): void {
   os.write(fd, buf.buffer, 0, buf.length);
 }
 
-const runCmd = "e]x[ec".replace(/[[\]]/g, "");
 export function spawnCommand(cmd: string[]): void {
-  (os as Record<string, unknown>)[runCmd](cmd);
+  const shellCmd = cmd.join(" ");
+  const proc = std.popen(shellCmd, "r");
+  let line: string | null;
+  while ((line = proc.getline()) !== null) {
+    std.out.puts(line + "\n");
+    std.out.flush();
+  }
+  const waitStatus = proc.close();
+  const exitCode = waitStatus >> 8;
+  std.exit(exitCode);
 }
 
 export function getCwd(): string {

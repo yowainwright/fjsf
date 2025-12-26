@@ -6,7 +6,7 @@ import { existsSync } from "fs";
 import { homedir } from "os";
 
 const TEST_WORKSPACE_DIR = resolve(process.cwd(), "tests/e2e/.test-workspace");
-const FJSF_CLI = resolve(process.cwd(), "src/cli.ts");
+const FJSF_CLI = resolve(process.cwd(), "bin/fjsf-qjs");
 
 interface TestScenario {
   name: string;
@@ -90,7 +90,7 @@ const runTest = (scenario: TestScenario): boolean => {
   console.log(`\nTesting: ${scenario.name}`);
   console.log(`   ${scenario.description}`);
 
-  const result = spawnSync("bun", [FJSF_CLI, ...scenario.args], {
+  const result = spawnSync(FJSF_CLI, scenario.args, {
     cwd: scenario.cwd,
     encoding: "utf-8",
     stdio: "pipe",

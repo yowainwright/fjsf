@@ -27,34 +27,39 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install QuickJS (macOS)
-        if: runner.os == 'macOS'
-        run: brew install quickjs
-
-      - name: Install QuickJS (Linux)
-        if: runner.os == 'Linux'
+      - name: Build and Install QuickJS
         run: |
-          git clone https://github.com/bellard/quickjs.git /tmp/quickjs
+          git clone --depth 1 https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
           cd /tmp/quickjs
-          make -j$(nproc)
-          sudo make install
+          cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local
+          cmake --build build -j$(nproc || sysctl -n hw.ncpu)
+          cmake --install build
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: bun install
 
       - name: Build QuickJS bundle
         run: |
-          mkdir -p dist/qjs
-          bun build ./src/browser/index.ts --outfile dist/qjs/core.js --target browser --minify --format esm
-          cp src/qjs/cli.js dist/qjs/
-          cp src/qjs/constants.js dist/qjs/
-          cp src/qjs/key-codes.js dist/qjs/
-          cp src/qjs/shell-scripts.js dist/qjs/
+          mkdir -p dist
+          bun build src/cli.ts --outfile dist/cli.js --target browser --format esm --packages external --minify
           VERSION=$(node -p "require('./package.json').version")
-          sed -i.bak "s/__VERSION__/$VERSION/g" dist/qjs/constants.js && rm dist/qjs/constants.js.bak
+          sed -i.bak "s/__VERSION__/$VERSION/g" dist/cli.js && rm dist/cli.js.bak
 
       - name: Build QuickJS binary
-        run: qjsc -m -o ./dist/${{ matrix.artifact }} dist/qjs/cli.js
+        run: |
+          $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
+          gcc -o ./dist/${{ matrix.artifact }} dist/cli.c \
+            /tmp/quickjs/quickjs.c \
+            /tmp/quickjs/quickjs-libc.c \
+            /tmp/quickjs/cutils.c \
+            /tmp/quickjs/libunicode.c \
+            /tmp/quickjs/libregexp.c \
+            /tmp/quickjs/dtoa.c \
+            -I/tmp/quickjs -lm -lpthread -ldl \
+            -D_GNU_SOURCE -DCONFIG_VERSION=\"0.8.0\"
+          chmod +x ./dist/${{ matrix.artifact }}
+          file ./dist/${{ matrix.artifact }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
