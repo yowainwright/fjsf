@@ -61,5 +61,6 @@ console.log(`Found qjsc at: ${qjscPath}`);
 
 console.log("\nCompiling to native binary...");
 await $`${qjscPath} -m -o ${join(BIN_DIR, "fjsf-qjs")} ${join(OUT_DIR, "cli.js")}`;
+await $`chmod +x ${join(BIN_DIR, "fjsf-qjs")}`;
 console.log(`Binary created at bin/fjsf-qjs`);
 await $`ls -lh ${join(BIN_DIR, "fjsf-qjs")}`;
