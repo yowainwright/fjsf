@@ -74,16 +74,21 @@ jobs:
           cmake --install build
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Verify QuickJS installation
-        run: |
-          $HOME/.local/bin/qjsc -h | head -1
-          ls -la $HOME/.local/lib/libqjs* || true
-
       - name: Install dependencies
         run: bun install
 
-      - name: Build QuickJS binary
-        run: bun run build:qjs
+      - name: Build JS bundle
+        run: |
+          mkdir -p dist bin
+          bun build src/cli.ts --outfile dist/cli.js --target browser --format esm --packages external --minify
+          VERSION=$(node -p "require('./package.json').version")
+          sed -i "s/__VERSION__/$VERSION/g" dist/cli.js
+
+      - name: Compile native binary
+        run: |
+          $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
+          gcc -o bin/fjsf-qjs dist/cli.c -I$HOME/.local/include -L$HOME/.local/lib -lqjs -lm -lpthread
+          chmod +x bin/fjsf-qjs
 
       - name: Verify binary
         run: |
@@ -116,8 +121,18 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build QuickJS binary
-        run: bun run build:qjs
+      - name: Build JS bundle
+        run: |
+          mkdir -p dist bin
+          bun build src/cli.ts --outfile dist/cli.js --target browser --format esm --packages external --minify
+          VERSION=$(node -p "require('./package.json').version")
+          sed -i "s/__VERSION__/$VERSION/g" dist/cli.js
+
+      - name: Compile native binary
+        run: |
+          $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
+          gcc -o bin/fjsf-qjs dist/cli.c -I$HOME/.local/include -L$HOME/.local/lib -lqjs -lm -lpthread
+          chmod +x bin/fjsf-qjs
 
       - name: Verify binary
         run: |
@@ -129,3 +144,4 @@ jobs:
 
       - name: Test CLI run mode
         run: ./bin/fjsf-qjs run package.json scripts.test
+

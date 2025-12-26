@@ -48,7 +48,8 @@ jobs:
 
       - name: Build QuickJS binary
         run: |
-          qjsc -m -o ./dist/${{ matrix.artifact }} dist/cli.js
+          $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
+          gcc -o ./dist/${{ matrix.artifact }} dist/cli.c -I$HOME/.local/include -L$HOME/.local/lib -lqjs -lm -lpthread
           chmod +x ./dist/${{ matrix.artifact }}
           file ./dist/${{ matrix.artifact }}
 
