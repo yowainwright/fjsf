@@ -71,11 +71,15 @@ jobs:
           cd /tmp/quickjs
           cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
           cmake --build build -j$(nproc)
+          echo "Build output:"
+          ls -la build/
           sudo cmake --install build
-          echo "QuickJS installed:"
-          ls -la /usr/bin/qjs* || true
-          which qjsc
-          qjsc --help || true
+          echo "Installed binaries:"
+          ls -la /usr/bin/qjs* || echo "No qjs* in /usr/bin"
+          ls -la /usr/local/bin/qjs* || echo "No qjs* in /usr/local/bin"
+          echo "PATH: $PATH"
+          which qjsc || echo "qjsc not in PATH"
+          which qjs || echo "qjs not in PATH"
 
       - name: Install dependencies
         run: bun install
@@ -106,11 +110,15 @@ jobs:
           cd /tmp/quickjs
           cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
           cmake --build build -j$(nproc)
+          echo "Build output:"
+          ls -la build/
           sudo cmake --install build
-          echo "QuickJS installed:"
-          ls -la /usr/bin/qjs* || true
-          which qjsc
-          qjsc --help || true
+          echo "Installed binaries:"
+          ls -la /usr/bin/qjs* || echo "No qjs* in /usr/bin"
+          ls -la /usr/local/bin/qjs* || echo "No qjs* in /usr/local/bin"
+          echo "PATH: $PATH"
+          which qjsc || echo "qjsc not in PATH"
+          which qjs || echo "qjs not in PATH"
 
       - name: Install dependencies
         run: bun install
