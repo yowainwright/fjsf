@@ -93,6 +93,7 @@ jobs:
             /tmp/quickjs/cutils.c \
             /tmp/quickjs/libunicode.c \
             /tmp/quickjs/libregexp.c \
+            /tmp/quickjs/dtoa.c \
             -I/tmp/quickjs -lm -lpthread -ldl \
             -D_GNU_SOURCE -DCONFIG_VERSION=\"0.8.0\"
           chmod +x bin/fjsf-qjs
@@ -144,6 +145,7 @@ jobs:
             /tmp/quickjs/cutils.c \
             /tmp/quickjs/libunicode.c \
             /tmp/quickjs/libregexp.c \
+            /tmp/quickjs/dtoa.c \
             -I/tmp/quickjs -lm -lpthread -ldl \
             -D_GNU_SOURCE -DCONFIG_VERSION=\"0.8.0\"
           chmod +x bin/fjsf-qjs
