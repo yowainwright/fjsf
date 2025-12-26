@@ -24,8 +24,29 @@ await Bun.write(cliPath, cliContent.replace(/__VERSION__/g, VERSION));
 
 console.log(`Bundle created at ${OUT_DIR}/cli.js (v${VERSION})`);
 
-const qjscExists = await $`command -v qjsc`.quiet().nothrow();
-if (qjscExists.exitCode !== 0) {
+const findQjsc = async (): Promise<string | null> => {
+  const inPath = await $`command -v qjsc`.quiet().nothrow();
+  if (inPath.exitCode === 0) {
+    return inPath.text().trim();
+  }
+
+  const locations = [
+    `${process.env.HOME}/.local/bin/qjsc`,
+    "/usr/local/bin/qjsc",
+  ];
+
+  const results = await Promise.all(
+    locations.map(async (loc) => {
+      const exists = await $`test -x ${loc}`.quiet().nothrow();
+      return exists.exitCode === 0 ? loc : null;
+    }),
+  );
+
+  return results.find((loc) => loc !== null) ?? null;
+};
+
+const qjscPath = await findQjsc();
+if (!qjscPath) {
   console.error(
     "\nError: qjsc not found. Install QuickJS to compile native binary:",
   );
@@ -36,7 +57,9 @@ if (qjscExists.exitCode !== 0) {
   process.exit(1);
 }
 
+console.log(`Found qjsc at: ${qjscPath}`);
+
 console.log("\nCompiling to native binary...");
-await $`qjsc -m -o ${join(BIN_DIR, "fjsf-qjs")} ${join(OUT_DIR, "cli.js")}`;
+await $`${qjscPath} -m -o ${join(BIN_DIR, "fjsf-qjs")} ${join(OUT_DIR, "cli.js")}`;
 console.log(`Binary created at bin/fjsf-qjs`);
 await $`ls -lh ${join(BIN_DIR, "fjsf-qjs")}`;
