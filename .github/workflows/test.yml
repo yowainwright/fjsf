@@ -69,10 +69,11 @@ jobs:
         run: |
           git clone https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
           cd /tmp/quickjs
-          cmake -B build
+          cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
           cmake --build build -j$(nproc)
           sudo cmake --install build
           echo "QuickJS installed:"
+          ls -la /usr/bin/qjs* || true
           which qjsc
           qjsc --help || true
 
@@ -103,10 +104,11 @@ jobs:
         run: |
           git clone https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
           cd /tmp/quickjs
-          cmake -B build
+          cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
           cmake --build build -j$(nproc)
           sudo cmake --install build
           echo "QuickJS installed:"
+          ls -la /usr/bin/qjs* || true
           which qjsc
           qjsc --help || true
 
