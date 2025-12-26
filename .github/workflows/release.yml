@@ -27,20 +27,13 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install QuickJS (macOS)
-        if: runner.os == 'macOS'
+      - name: Build and Install QuickJS
         run: |
-          mkdir -p $HOME/.local/bin
-          curl -L -o $HOME/.local/bin/qjsc https://github.com/quickjs-ng/quickjs/releases/latest/download/qjsc-darwin
-          chmod +x $HOME/.local/bin/qjsc
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Install QuickJS (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          mkdir -p $HOME/.local/bin
-          curl -L -o $HOME/.local/bin/qjsc https://github.com/quickjs-ng/quickjs/releases/latest/download/qjsc-linux-x86_64
-          chmod +x $HOME/.local/bin/qjsc
+          git clone --depth 1 https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
+          cd /tmp/quickjs
+          cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local
+          cmake --build build -j$(nproc || sysctl -n hw.ncpu)
+          cmake --install build
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
@@ -54,7 +47,10 @@ jobs:
           sed -i.bak "s/__VERSION__/$VERSION/g" dist/cli.js && rm dist/cli.js.bak
 
       - name: Build QuickJS binary
-        run: qjsc -m -o ./dist/${{ matrix.artifact }} dist/cli.js
+        run: |
+          qjsc -m -o ./dist/${{ matrix.artifact }} dist/cli.js
+          chmod +x ./dist/${{ matrix.artifact }}
+          file ./dist/${{ matrix.artifact }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

@@ -64,3 +64,4 @@ await $`${qjscPath} -m -o ${join(BIN_DIR, "fjsf-qjs")} ${join(OUT_DIR, "cli.js")
 await $`chmod +x ${join(BIN_DIR, "fjsf-qjs")}`;
 console.log(`Binary created at bin/fjsf-qjs`);
 await $`ls -lh ${join(BIN_DIR, "fjsf-qjs")}`;
+await $`file ${join(BIN_DIR, "fjsf-qjs")}`;

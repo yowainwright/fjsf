@@ -65,26 +65,30 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install QuickJS
+      - name: Build and Install QuickJS
         run: |
-          mkdir -p $HOME/.local/bin
-          curl -fL -o $HOME/.local/bin/qjsc https://github.com/quickjs-ng/quickjs/releases/latest/download/qjsc-linux-x86_64
-          chmod +x $HOME/.local/bin/qjsc
-          ls -la $HOME/.local/bin/qjsc
-          $HOME/.local/bin/qjsc -h | head -1
+          git clone --depth 1 https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
+          cd /tmp/quickjs
+          cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local
+          cmake --build build -j$(nproc)
+          cmake --install build
           echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Verify QuickJS installation
+        run: |
+          $HOME/.local/bin/qjsc -h | head -1
+          ls -la $HOME/.local/lib/libqjs* || true
 
       - name: Install dependencies
         run: bun install
 
       - name: Build QuickJS binary
-        run: |
-          echo "PATH: $PATH"
-          which qjsc || echo "qjsc not in PATH, using direct path"
-          bun run build:qjs
+        run: bun run build:qjs
 
-      - name: Verify binary exists
-        run: ls -la bin/fjsf-qjs
+      - name: Verify binary
+        run: |
+          ls -la bin/fjsf-qjs
+          file bin/fjsf-qjs
 
       - name: Run e2e tests
         run: bun run test:e2e
@@ -100,26 +104,25 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install QuickJS
+      - name: Build and Install QuickJS
         run: |
-          mkdir -p $HOME/.local/bin
-          curl -fL -o $HOME/.local/bin/qjsc https://github.com/quickjs-ng/quickjs/releases/latest/download/qjsc-linux-x86_64
-          chmod +x $HOME/.local/bin/qjsc
-          ls -la $HOME/.local/bin/qjsc
-          $HOME/.local/bin/qjsc -h | head -1
+          git clone --depth 1 https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
+          cd /tmp/quickjs
+          cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local
+          cmake --build build -j$(nproc)
+          cmake --install build
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: bun install
 
       - name: Build QuickJS binary
-        run: |
-          echo "PATH: $PATH"
-          which qjsc || echo "qjsc not in PATH, using direct path"
-          bun run build:qjs
+        run: bun run build:qjs
 
-      - name: Verify binary exists
-        run: ls -la bin/fjsf-qjs
+      - name: Verify binary
+        run: |
+          ls -la bin/fjsf-qjs
+          file bin/fjsf-qjs
 
       - name: Test CLI help
         run: ./bin/fjsf-qjs help
