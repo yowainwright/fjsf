@@ -86,8 +86,9 @@ jobs:
 
       - name: Compile native binary
         run: |
+          find $HOME/.local -name "quickjs*.h" 2>/dev/null || true
           $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
-          gcc -o bin/fjsf-qjs dist/cli.c -I$HOME/.local/include -L$HOME/.local/lib -lqjs -lm -lpthread
+          gcc -o bin/fjsf-qjs dist/cli.c -I/tmp/quickjs -L$HOME/.local/lib -lqjs -lm -lpthread -ldl
           chmod +x bin/fjsf-qjs
 
       - name: Verify binary
@@ -131,7 +132,7 @@ jobs:
       - name: Compile native binary
         run: |
           $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
-          gcc -o bin/fjsf-qjs dist/cli.c -I$HOME/.local/include -L$HOME/.local/lib -lqjs -lm -lpthread
+          gcc -o bin/fjsf-qjs dist/cli.c -I/tmp/quickjs -L$HOME/.local/lib -lqjs -lm -lpthread -ldl
           chmod +x bin/fjsf-qjs
 
       - name: Verify binary
