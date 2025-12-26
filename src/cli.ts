@@ -418,10 +418,13 @@ export function executeScript(script: PackageScript): void {
   const pm = detectPackageManager(cwd);
   const cmd = buildRunCommand(script, pm);
 
-  std.out.puts(SHOW_CURSOR);
-  std.out.puts(CLEAR_SCREEN);
-  std.out.puts(`${CYAN}Running: ${cmd.join(" ")}${RESET}\n\n`);
-  std.out.flush();
+  const ttyFd = os.open("/dev/tty", os.O_WRONLY);
+  if (ttyFd >= 0) {
+    ttyWrite(ttyFd, SHOW_CURSOR);
+    ttyWrite(ttyFd, CLEAR_SCREEN);
+    ttyWrite(ttyFd, `${CYAN}Running: ${cmd.join(" ")}${RESET}\n\n`);
+    os.close(ttyFd);
+  }
 
   spawnCommand(cmd);
 }
@@ -874,6 +877,17 @@ export function runInit(initMode: "widget" | "native"): void {
 
 const WIDGET_MAX_VISIBLE = 8;
 
+export function clearWidgetLines(ttyFd: number, lineCount: number): void {
+  if (lineCount <= 0) return;
+
+  ttyWrite(ttyFd, CLEAR_LINE);
+  for (let i = 1; i < lineCount; i++) {
+    ttyWrite(ttyFd, MOVE_UP);
+    ttyWrite(ttyFd, CLEAR_LINE);
+  }
+  ttyWrite(ttyFd, MOVE_UP);
+}
+
 export function formatWidgetLine(
   match: FuzzyMatch<PackageScript>,
   index: number,
@@ -890,10 +904,7 @@ export function renderWidget(
   state: InteractiveState<PackageScript>,
   lastLineCount: number,
 ): number {
-  for (let i = 0; i < lastLineCount; i++) {
-    ttyWrite(ttyFd, MOVE_UP);
-    ttyWrite(ttyFd, CLEAR_LINE);
-  }
+  clearWidgetLines(ttyFd, lastLineCount);
 
   const hasNoMatches = state.matches.length === 0;
   if (hasNoMatches) {
@@ -948,10 +959,7 @@ export function createWidgetContext(): WidgetContext | null {
 export function cleanupWidgetContext(ctx: WidgetContext | null): void {
   if (!ctx) return;
 
-  for (let i = 0; i < ctx.lineCount; i++) {
-    ttyWrite(ctx.ttyFd, MOVE_UP);
-    ttyWrite(ctx.ttyFd, CLEAR_LINE);
-  }
+  clearWidgetLines(ctx.ttyFd, ctx.lineCount);
   ttyWrite(ctx.ttyFd, SHOW_CURSOR);
 
   os.ttySetRaw(ctx.stdinFd, false);
