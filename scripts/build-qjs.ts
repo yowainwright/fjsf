@@ -25,14 +25,14 @@ await Bun.write(cliPath, cliContent.replace(/__VERSION__/g, VERSION));
 console.log(`Bundle created at ${OUT_DIR}/cli.js (v${VERSION})`);
 
 const qjscExists = await $`command -v qjsc`.quiet().nothrow();
-if (qjscExists.exitCode === 0) {
-  console.log("\nCompiling to native binary...");
-  await $`qjsc -m -o ${join(BIN_DIR, "fjsf-qjs")} ${join(OUT_DIR, "cli.js")}`;
-  console.log(`Binary created at bin/fjsf-qjs`);
-  await $`ls -lh ${join(BIN_DIR, "fjsf-qjs")}`;
-} else {
-  console.log(
-    "\nNote: qjsc not found. Install QuickJS to compile native binary:",
-  );
-  console.log("  brew install quickjs");
+if (qjscExists.exitCode !== 0) {
+  console.error("\nError: qjsc not found. Install QuickJS to compile native binary:");
+  console.error("  macOS: brew install quickjs");
+  console.error("  Linux: git clone https://github.com/quickjs-ng/quickjs.git && cd quickjs && cmake -B build && cmake --build build && sudo cmake --install build");
+  process.exit(1);
 }
+
+console.log("\nCompiling to native binary...");
+await $`qjsc -m -o ${join(BIN_DIR, "fjsf-qjs")} ${join(OUT_DIR, "cli.js")}`;
+console.log(`Binary created at bin/fjsf-qjs`);
+await $`ls -lh ${join(BIN_DIR, "fjsf-qjs")}`;

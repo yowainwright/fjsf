@@ -67,16 +67,23 @@ jobs:
 
       - name: Install QuickJS
         run: |
-          git clone https://github.com/bellard/quickjs.git /tmp/quickjs
+          git clone https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
           cd /tmp/quickjs
-          make -j$(nproc)
-          sudo make install
+          cmake -B build
+          cmake --build build -j$(nproc)
+          sudo cmake --install build
+          echo "QuickJS installed:"
+          which qjsc
+          qjsc --help || true
 
       - name: Install dependencies
         run: bun install
 
       - name: Build QuickJS binary
         run: bun run build:qjs
+
+      - name: Verify binary exists
+        run: ls -la bin/fjsf-qjs
 
       - name: Run e2e tests
         run: bun run test:e2e
@@ -94,16 +101,23 @@ jobs:
 
       - name: Install QuickJS
         run: |
-          git clone https://github.com/bellard/quickjs.git /tmp/quickjs
+          git clone https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
           cd /tmp/quickjs
-          make -j$(nproc)
-          sudo make install
+          cmake -B build
+          cmake --build build -j$(nproc)
+          sudo cmake --install build
+          echo "QuickJS installed:"
+          which qjsc
+          qjsc --help || true
 
       - name: Install dependencies
         run: bun install
 
       - name: Build QuickJS binary
         run: bun run build:qjs
+
+      - name: Verify binary exists
+        run: ls -la bin/fjsf-qjs
 
       - name: Test CLI help
         run: ./bin/fjsf-qjs help
