@@ -26,9 +26,13 @@ console.log(`Bundle created at ${OUT_DIR}/cli.js (v${VERSION})`);
 
 const qjscExists = await $`command -v qjsc`.quiet().nothrow();
 if (qjscExists.exitCode !== 0) {
-  console.error("\nError: qjsc not found. Install QuickJS to compile native binary:");
+  console.error(
+    "\nError: qjsc not found. Install QuickJS to compile native binary:",
+  );
   console.error("  macOS: brew install quickjs");
-  console.error("  Linux: git clone https://github.com/quickjs-ng/quickjs.git && cd quickjs && cmake -B build && cmake --build build && sudo cmake --install build");
+  console.error(
+    "  Linux: git clone https://github.com/quickjs-ng/quickjs.git && cd quickjs && cmake -B build && cmake --build build && sudo cmake --install build",
+  );
   process.exit(1);
 }
 
