@@ -55,7 +55,8 @@ jobs:
             /tmp/quickjs/cutils.c \
             /tmp/quickjs/libunicode.c \
             /tmp/quickjs/libregexp.c \
-            -I/tmp/quickjs -lm -lpthread -ldl -DCONFIG_VERSION=\"0.8.0\"
+            -I/tmp/quickjs -lm -lpthread -ldl \
+            -D_GNU_SOURCE -DCONFIG_VERSION=\"0.8.0\"
           chmod +x ./dist/${{ matrix.artifact }}
           file ./dist/${{ matrix.artifact }}
 
