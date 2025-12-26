@@ -67,19 +67,9 @@ jobs:
 
       - name: Install QuickJS
         run: |
-          git clone https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
-          cd /tmp/quickjs
-          cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build build -j$(nproc)
-          echo "Build output:"
-          ls -la build/
-          sudo cmake --install build
-          echo "Installed binaries:"
-          ls -la /usr/bin/qjs* || echo "No qjs* in /usr/bin"
-          ls -la /usr/local/bin/qjs* || echo "No qjs* in /usr/local/bin"
-          echo "PATH: $PATH"
-          which qjsc || echo "qjsc not in PATH"
-          which qjs || echo "qjs not in PATH"
+          curl -L -o /usr/local/bin/qjsc https://github.com/quickjs-ng/quickjs/releases/latest/download/qjsc-linux-x86_64
+          chmod +x /usr/local/bin/qjsc
+          qjsc -h | head -3
 
       - name: Install dependencies
         run: bun install
@@ -106,19 +96,9 @@ jobs:
 
       - name: Install QuickJS
         run: |
-          git clone https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
-          cd /tmp/quickjs
-          cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build build -j$(nproc)
-          echo "Build output:"
-          ls -la build/
-          sudo cmake --install build
-          echo "Installed binaries:"
-          ls -la /usr/bin/qjs* || echo "No qjs* in /usr/bin"
-          ls -la /usr/local/bin/qjs* || echo "No qjs* in /usr/local/bin"
-          echo "PATH: $PATH"
-          which qjsc || echo "qjsc not in PATH"
-          which qjs || echo "qjs not in PATH"
+          curl -L -o /usr/local/bin/qjsc https://github.com/quickjs-ng/quickjs/releases/latest/download/qjsc-linux-x86_64
+          chmod +x /usr/local/bin/qjsc
+          qjsc -h | head -3
 
       - name: Install dependencies
         run: bun install
