@@ -34,7 +34,7 @@ graph TD
     B -->|scripts| C[Scripts Mode]
     B -->|find| D[Find Mode]
     B -->|path| E[Path Mode]
-    B -->|exec| F[Exec Mode]
+    B -->|run| F[Run Mode]
     B -->|init| G[Shell Integration]
     B -->|help/quit| H[Exit]
 
@@ -68,7 +68,7 @@ graph TD
 - **Scripts Mode**: Fuzzy search and execute npm scripts
 - **Find Mode**: Find all versions of a file across your repo and fuzzy search their JSON
 - **Path Mode**: Query a specific JSON file with fuzzy search
-- **Exec Mode**: Execute specific keys from JSON files directly
+- **Run Mode**: Execute specific keys from JSON files directly
 - **Smart Caching**: JSON files are cached in memory with mtime validation for instant searches
 - Supports monorepos with workspaces (npm, pnpm, yarn, bun)
 - Automatic package manager detection
@@ -161,11 +161,11 @@ fjsf path ./tsconfig.json
 # Shows: compilerOptions.strict: true
 ```
 
-### Execute Script Directly
+### Run Script Directly
 
 ```bash
-fjsf exec package.json scripts.build    # Run build script
-fjsf e package.json scripts.test        # Run test (short form)
+fjsf run package.json scripts.build    # Run build script
+fjsf r package.json scripts.test       # Run test (short form)
 ```
 
 ## Command Reference
@@ -182,9 +182,9 @@ fjsf f <filename>       # Short form
 fjsf path <file>        # fjsf path ./tsconfig.json
 fjsf p <file>           # Short form
 
-# Exec mode - run script directly
-fjsf exec <file> <key>  # fjsf exec package.json scripts.dev
-fjsf e <file> <key>     # Short form
+# Run mode - run script directly
+fjsf run <file> <key>   # fjsf run package.json scripts.dev
+fjsf r <file> <key>     # Short form
 
 # Shell integration
 fjsf init               # Setup Tab completion
