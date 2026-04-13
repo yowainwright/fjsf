@@ -67,7 +67,7 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
           cd /tmp/quickjs
-          cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local
+          cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local -DBUILD_SHARED_LIBS=OFF
           cmake --build build -j$(nproc)
           cmake --install build
           echo "$HOME/.local/bin" >> $GITHUB_PATH
@@ -84,9 +84,12 @@ jobs:
 
       - name: Compile native binary
         run: |
+          set -e
           $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
           QUICKJS_INCLUDE=$(find $HOME/.local/include -name "quickjs.h" -exec dirname {} \; | head -1)
           QUICKJS_LIB=$(find $HOME/.local -name "libquickjs.a" | head -1)
+          test -n "$QUICKJS_INCLUDE" || { echo "ERROR: quickjs.h not found"; exit 1; }
+          test -n "$QUICKJS_LIB" || { echo "ERROR: libquickjs.a not found"; exit 1; }
           gcc -o bin/fjsf-qjs dist/cli.c \
             -I"$QUICKJS_INCLUDE" \
             "$QUICKJS_LIB" \
@@ -116,7 +119,7 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
           cd /tmp/quickjs
-          cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local
+          cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local -DBUILD_SHARED_LIBS=OFF
           cmake --build build -j$(nproc)
           cmake --install build
           echo "$HOME/.local/bin" >> $GITHUB_PATH
@@ -133,9 +136,12 @@ jobs:
 
       - name: Compile native binary
         run: |
+          set -e
           $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
           QUICKJS_INCLUDE=$(find $HOME/.local/include -name "quickjs.h" -exec dirname {} \; | head -1)
           QUICKJS_LIB=$(find $HOME/.local -name "libquickjs.a" | head -1)
+          test -n "$QUICKJS_INCLUDE" || { echo "ERROR: quickjs.h not found"; exit 1; }
+          test -n "$QUICKJS_LIB" || { echo "ERROR: libquickjs.a not found"; exit 1; }
           gcc -o bin/fjsf-qjs dist/cli.c \
             -I"$QUICKJS_INCLUDE" \
             "$QUICKJS_LIB" \
