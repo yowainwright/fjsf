@@ -6,8 +6,7 @@ const join = (...parts: (string | undefined | null)[]): string =>
   parts.filter(Boolean).join("/").replace(/\/+/g, "/");
 
 const relative = (from: string, to: string): string => {
-  const isSubPath =
-    to.startsWith(from) && (to[from.length] === "/" || from.length === to.length);
+  const isSubPath = to.startsWith(from) && (to[from.length] === "/" || from.length === to.length);
   if (isSubPath) {
     const rel = to.slice(from.length);
     return rel.startsWith("/") ? rel.slice(1) : rel;
@@ -57,13 +56,7 @@ const flattenValue = (
   }
 
   if (Array.isArray(value)) {
-    const selfEntry = createEntry(
-      path,
-      `Array(${value.length})`,
-      key,
-      filePath,
-      workspace,
-    );
+    const selfEntry = createEntry(path, `Array(${value.length})`, key, filePath, workspace);
     const childEntries = value.flatMap((item, i) =>
       flattenValue(item, `${path}[${i}]`, `[${i}]`, filePath, workspace),
     );
@@ -73,22 +66,10 @@ const flattenValue = (
   const isObject = typeof value === "object";
   if (isObject) {
     const keys = Object.keys(value as Record<string, unknown>);
-    const selfEntry = createEntry(
-      path,
-      `Object(${keys.length})`,
-      key,
-      filePath,
-      workspace,
-    );
+    const selfEntry = createEntry(path, `Object(${keys.length})`, key, filePath, workspace);
     const childEntries = keys.flatMap((k) => {
       const newPath = path ? `${path}.${k}` : k;
-      return flattenValue(
-        (value as Record<string, unknown>)[k],
-        newPath,
-        k,
-        filePath,
-        workspace,
-      );
+      return flattenValue((value as Record<string, unknown>)[k], newPath, k, filePath, workspace);
     });
     return [selfEntry, ...childEntries];
   }
@@ -100,10 +81,7 @@ const flattenJson = (
   obj: Record<string, unknown>,
   filePath: string,
   workspace: string,
-): JsonEntry[] =>
-  Object.keys(obj).flatMap((k) =>
-    flattenValue(obj[k], k, k, filePath, workspace),
-  );
+): JsonEntry[] => Object.keys(obj).flatMap((k) => flattenValue(obj[k], k, k, filePath, workspace));
 
 type FileFormat = "json" | "toml" | "yaml" | "unknown";
 
@@ -127,8 +105,7 @@ const extractScripts = (
   workspace: string,
 ): JsonEntry[] => {
   const fromCurrentLevel = SCRIPT_KEYS.filter(
-    (key) =>
-      key in obj && obj[key] && typeof obj[key] === "object" && !Array.isArray(obj[key]),
+    (key) => key in obj && obj[key] && typeof obj[key] === "object" && !Array.isArray(obj[key]),
   ).flatMap((key) => {
     const section = obj[key] as Record<string, unknown>;
     return Object.entries(section)
@@ -145,14 +122,9 @@ const extractScripts = (
   const fromNested = Object.entries(obj)
     .filter(
       ([key, value]) =>
-        !SCRIPT_KEYS.includes(key) &&
-        value &&
-        typeof value === "object" &&
-        !Array.isArray(value),
+        !SCRIPT_KEYS.includes(key) && value && typeof value === "object" && !Array.isArray(value),
     )
-    .flatMap(([, value]) =>
-      extractScripts(value as Record<string, unknown>, filePath, workspace),
-    );
+    .flatMap(([, value]) => extractScripts(value as Record<string, unknown>, filePath, workspace));
 
   return [...fromCurrentLevel, ...fromNested];
 };
@@ -165,11 +137,9 @@ const createDefaultOptions = () => ({
   filePath: undefined as string | undefined,
 });
 
-const isHelpArg = (arg: string): boolean =>
-  ["help", "h", "--help", "-h"].includes(arg);
+const isHelpArg = (arg: string): boolean => ["help", "h", "--help", "-h"].includes(arg);
 
-const isVersionArg = (arg: string): boolean =>
-  ["--version", "-v"].includes(arg);
+const isVersionArg = (arg: string): boolean => ["--version", "-v"].includes(arg);
 
 const isQuitArg = (arg: string): boolean => ["quit", "q"].includes(arg);
 
@@ -215,21 +185,16 @@ const isArrowSequence = (byte0: number, key: Uint8Array): boolean => {
   return isEscape && hasEnoughBytes && (isNormalMode || isAppMode);
 };
 
-const isHighSurrogate = (code: number): boolean =>
-  code >= 0xd800 && code < 0xdc00;
+const isHighSurrogate = (code: number): boolean => code >= 0xd800 && code < 0xdc00;
 
-const isLowSurrogate = (code: number): boolean =>
-  code >= 0xdc00 && code < 0xe000;
+const isLowSurrogate = (code: number): boolean => code >= 0xdc00 && code < 0xe000;
 
 const decodeSurrogatePair = (high: number, low: number): number =>
   ((high - 0xd800) << 10) + (low - 0xdc00) + 0x10000;
 
 const encodeOneByteChar = (code: number): number[] => [code];
 
-const encodeTwoByteChar = (code: number): number[] => [
-  0xc0 | (code >> 6),
-  0x80 | (code & 0x3f),
-];
+const encodeTwoByteChar = (code: number): number[] => [0xc0 | (code >> 6), 0x80 | (code & 0x3f)];
 
 const encodeThreeByteChar = (code: number): number[] => [
   0xe0 | (code >> 12),
@@ -331,15 +296,11 @@ describe("Path utilities", () => {
     });
 
     it("joins cwd with relative path", () => {
-      expect(toAbsolutePath("/cwd", "relative/path")).toBe(
-        "/cwd/relative/path",
-      );
+      expect(toAbsolutePath("/cwd", "relative/path")).toBe("/cwd/relative/path");
     });
 
     it("handles current directory", () => {
-      expect(toAbsolutePath("/home/user", "file.txt")).toBe(
-        "/home/user/file.txt",
-      );
+      expect(toAbsolutePath("/home/user", "file.txt")).toBe("/home/user/file.txt");
     });
   });
 });
@@ -386,13 +347,7 @@ describe("JSON utilities", () => {
 
   describe("createEntry", () => {
     it("creates entry object", () => {
-      const entry = createEntry(
-        "path.to.key",
-        "value",
-        "key",
-        "file.json",
-        "workspace",
-      );
+      const entry = createEntry("path.to.key", "value", "key", "file.json", "workspace");
       expect(entry).toEqual({
         path: "path.to.key",
         value: "value",
@@ -425,13 +380,7 @@ describe("JSON utilities", () => {
     });
 
     it("flattens objects", () => {
-      const entries = flattenValue(
-        { a: 1, b: 2 },
-        "obj",
-        "obj",
-        "file.json",
-        "ws",
-      );
+      const entries = flattenValue({ a: 1, b: 2 }, "obj", "obj", "file.json", "ws");
       expect(entries).toHaveLength(3);
       expect(entries[0]!.value).toBe("Object(2)");
       expect(entries[1]!.path).toBe("obj.a");
@@ -494,12 +443,12 @@ describe("TOML parser", () => {
   });
 
   it("parses table headers", () => {
-    const result = parseToml("[scripts]\nbuild = \"npm run build\"\ntest = \"npm test\"");
+    const result = parseToml('[scripts]\nbuild = "npm run build"\ntest = "npm test"');
     expect(result).toEqual({ scripts: { build: "npm run build", test: "npm test" } });
   });
 
   it("parses nested table paths", () => {
-    const result = parseToml("[tool.taskipy.tasks]\nbuild = \"python setup.py build\"");
+    const result = parseToml('[tool.taskipy.tasks]\nbuild = "python setup.py build"');
     expect(result?.tool).toEqual({ taskipy: { tasks: { build: "python setup.py build" } } });
   });
 
@@ -514,12 +463,13 @@ describe("TOML parser", () => {
   });
 
   it("ignores comments", () => {
-    const result = parseToml("# This is a comment\nname = \"test\" # inline comment");
+    const result = parseToml('# This is a comment\nname = "test" # inline comment');
     expect(result).toEqual({ name: "test" });
   });
 
   it("parses array tables [[key]]", () => {
-    const content = "[[bin]]\nname = \"fjsf\"\npath = \"src/main.rs\"\n\n[[bin]]\nname = \"fjsf-alt\"\npath = \"src/alt.rs\"";
+    const content =
+      '[[bin]]\nname = "fjsf"\npath = "src/main.rs"\n\n[[bin]]\nname = "fjsf-alt"\npath = "src/alt.rs"';
     const result = parseToml(content);
     expect(Array.isArray(result?.bin)).toBe(true);
     expect((result?.bin as unknown[]).length).toBe(2);
@@ -569,7 +519,8 @@ describe("YAML parser", () => {
   });
 
   it("parses sequences of objects", () => {
-    const content = "steps:\n  - name: Run tests\n    run: npm test\n  - name: Build\n    run: npm run build";
+    const content =
+      "steps:\n  - name: Run tests\n    run: npm test\n  - name: Build\n    run: npm run build";
     const result = parseYaml(content);
     const steps = result?.steps as Record<string, string>[];
     expect(steps).toHaveLength(2);
@@ -607,7 +558,7 @@ describe("YAML parser", () => {
   });
 
   it("parses quoted strings", () => {
-    const result = parseYaml('name: "hello world"\nother: \'single quoted\'');
+    const result = parseYaml("name: \"hello world\"\nother: 'single quoted'");
     expect(result?.name).toBe("hello world");
     expect(result?.other).toBe("single quoted");
   });

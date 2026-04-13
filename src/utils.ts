@@ -11,8 +11,7 @@ export function join(...parts: string[]): string {
 }
 
 export function relative(from: string, to: string): string {
-  const isSubPath =
-    to.startsWith(from) && (to[from.length] === "/" || from.length === to.length);
+  const isSubPath = to.startsWith(from) && (to[from.length] === "/" || from.length === to.length);
   if (isSubPath) {
     const rel = to.slice(from.length);
     return rel.startsWith("/") ? rel.slice(1) : rel;
@@ -60,10 +59,7 @@ export function isSkippableEntry(entry: string): boolean {
   return entry === "node_modules" || entry.startsWith(".");
 }
 
-export function isTraversableDirectory(
-  entry: string,
-  fullPath: string,
-): boolean {
+export function isTraversableDirectory(entry: string, fullPath: string): boolean {
   return !isSkippableEntry(entry) && isDirectory(fullPath);
 }
 
@@ -86,9 +82,7 @@ export function findFilesByName(
       const fullPath = join(dir, entry);
       return entry !== fileName && isTraversableDirectory(entry, fullPath);
     })
-    .flatMap((entry: string) =>
-      findFilesByName(join(dir, entry), fileName, depth + 1, maxDepth),
-    );
+    .flatMap((entry: string) => findFilesByName(join(dir, entry), fileName, depth + 1, maxDepth));
 
   return [...directMatches, ...nestedMatches];
 }
@@ -113,11 +107,7 @@ const CONFIG_BLOCKLIST = ["lock", "tsconfig"];
 const isBlocklistedConfig = (filename: string): boolean =>
   CONFIG_BLOCKLIST.some((pattern) => filename.includes(pattern));
 
-export function findConfigFiles(
-  dir: string,
-  depth: number,
-  maxDepth: number,
-): string[] {
+export function findConfigFiles(dir: string, depth: number, maxDepth: number): string[] {
   if (depth > maxDepth) return [];
 
   const entries = readDir(dir);
@@ -125,8 +115,7 @@ export function findConfigFiles(
   const directMatches = entries
     .filter(
       (entry: string) =>
-        CONFIG_PATTERNS.some((ext) => entry.endsWith(ext)) &&
-        !isBlocklistedConfig(entry),
+        CONFIG_PATTERNS.some((ext) => entry.endsWith(ext)) && !isBlocklistedConfig(entry),
     )
     .map((entry: string) => join(dir, entry));
 
@@ -135,9 +124,7 @@ export function findConfigFiles(
       const fullPath = join(dir, entry);
       return isTraversableDirectory(entry, fullPath);
     })
-    .flatMap((entry: string) =>
-      findConfigFiles(join(dir, entry), depth + 1, maxDepth),
-    );
+    .flatMap((entry: string) => findConfigFiles(join(dir, entry), depth + 1, maxDepth));
 
   return [...directMatches, ...nestedMatches];
 }
@@ -153,21 +140,16 @@ export function parseConfigFile(
 }
 
 // UTF-8 encoding utilities
-const isHighSurrogate = (code: number): boolean =>
-  code >= 0xd800 && code < 0xdc00;
+const isHighSurrogate = (code: number): boolean => code >= 0xd800 && code < 0xdc00;
 
-const isLowSurrogate = (code: number): boolean =>
-  code >= 0xdc00 && code < 0xe000;
+const isLowSurrogate = (code: number): boolean => code >= 0xdc00 && code < 0xe000;
 
 const decodeSurrogatePair = (high: number, low: number): number =>
   ((high - 0xd800) << 10) + (low - 0xdc00) + 0x10000;
 
 const encodeOneByteChar = (code: number): number[] => [code];
 
-const encodeTwoByteChar = (code: number): number[] => [
-  0xc0 | (code >> 6),
-  0x80 | (code & 0x3f),
-];
+const encodeTwoByteChar = (code: number): number[] => [0xc0 | (code >> 6), 0x80 | (code & 0x3f)];
 
 const encodeThreeByteChar = (code: number): number[] => [
   0xe0 | (code >> 12),

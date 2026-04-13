@@ -20,8 +20,7 @@ const stripYamlComment = (line: string): string => {
       inStr = false;
     } else if (!inStr && c === "#") {
       const before = line[i - 1];
-      if (!before || before === " " || before === "\t")
-        return line.slice(0, i).trimEnd();
+      if (!before || before === " " || before === "\t") return line.slice(0, i).trimEnd();
     }
   }
   return line.trimEnd();
@@ -78,8 +77,7 @@ const parseScalar = (v: string): unknown => {
       .replace(/\\t/g, "\t")
       .replace(/\\"/g, '"')
       .replace(/\\\\/g, "\\");
-  if (s.startsWith("'") && s.endsWith("'"))
-    return s.slice(1, -1).replace(/''/g, "'");
+  if (s.startsWith("'") && s.endsWith("'")) return s.slice(1, -1).replace(/''/g, "'");
   if (s.startsWith("[") && s.endsWith("]")) return parseFlowSeq(s.slice(1, -1));
   if (s.startsWith("{") && s.endsWith("}")) return parseFlowMap(s.slice(1, -1));
   const n = Number(s);
@@ -121,9 +119,7 @@ type Frame =
 export const parseYaml = (content: string): Record<string, unknown> | null => {
   try {
     const root: YamlObj = {};
-    const stack: Frame[] = [
-      { kind: "obj", indent: -1, obj: root, lastKey: null },
-    ];
+    const stack: Frame[] = [{ kind: "obj", indent: -1, obj: root, lastKey: null }];
     const lines = content.split("\n");
     let i = 0;
 
@@ -150,10 +146,7 @@ export const parseYaml = (content: string): Record<string, unknown> | null => {
     };
 
     const popToIndent = (indent: number): void => {
-      while (
-        stack.length > 1 &&
-        stack[stack.length - 1].indent >= indent
-      ) {
+      while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {
         stack.pop();
       }
     };

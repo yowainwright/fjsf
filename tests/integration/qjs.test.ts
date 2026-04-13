@@ -197,29 +197,17 @@ describeQJS("QuickJS Binary Integration Tests", () => {
     });
 
     test("finds and parses JSON scripts via Ctrl+C exit", async () => {
-      const result = await runQJSWithInput(
-        ["find", "package.json"],
-        CTRL_C,
-        TEST_DIR,
-      );
+      const result = await runQJSWithInput(["find", "package.json"], CTRL_C, TEST_DIR);
       expect(result.exitCode).toBe(0);
     });
 
     test("finds and parses TOML scripts via Ctrl+C exit", async () => {
-      const result = await runQJSWithInput(
-        ["find", "Cargo.toml"],
-        CTRL_C,
-        TEST_DIR,
-      );
+      const result = await runQJSWithInput(["find", "Cargo.toml"], CTRL_C, TEST_DIR);
       expect(result.exitCode).toBe(0);
     });
 
     test("finds and parses YAML tasks via Ctrl+C exit", async () => {
-      const result = await runQJSWithInput(
-        ["find", "taskfile.yml"],
-        CTRL_C,
-        TEST_DIR,
-      );
+      const result = await runQJSWithInput(["find", "taskfile.yml"], CTRL_C, TEST_DIR);
       expect(result.exitCode).toBe(0);
     });
   });

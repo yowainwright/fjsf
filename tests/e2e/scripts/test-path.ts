@@ -75,9 +75,7 @@ const runTest = (scenario: TestScenario): boolean => {
 
 const runAllTests = () => {
   console.log("Running path command e2e tests...\n");
-  console.log(
-    "Note: Path mode is interactive - limited validation in automated tests",
-  );
+  console.log("Note: Path mode is interactive - limited validation in automated tests");
 
   const results = scenarios.map(runTest);
   const passed = results.filter(Boolean).length;

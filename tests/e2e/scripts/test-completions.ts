@@ -89,11 +89,7 @@ const testNativeCompletionFunction = () => {
 
   const isInitFilePresent = existsSync(initFile);
   if (!isInitFilePresent) {
-    addResult(
-      "Native completion function test",
-      false,
-      "init.zsh not found, skipping",
-    );
+    addResult("Native completion function test", false, "init.zsh not found, skipping");
     return;
   }
 
@@ -117,10 +113,7 @@ fi
 
   const checkResult = spawnSync(
     "zsh",
-    [
-      "-c",
-      `source ${initFile} && type _fjsf_native_bun_run | grep -q "function"`,
-    ],
+    ["-c", `source ${initFile} && type _fjsf_native_bun_run | grep -q "function"`],
     {
       encoding: "utf-8",
       stdio: "pipe",
@@ -143,11 +136,7 @@ const testCompletionRegistration = () => {
 
   const isInitFilePresent = existsSync(initFile);
   if (!isInitFilePresent) {
-    addResult(
-      "Completion registration test",
-      false,
-      "init.zsh not found, skipping",
-    );
+    addResult("Completion registration test", false, "init.zsh not found, skipping");
     return;
   }
 
@@ -156,31 +145,24 @@ const testCompletionRegistration = () => {
     stdio: "pipe",
   });
 
-  const hasCompdefs =
-    checkCompdef.status === 0 && parseInt(checkCompdef.stdout) >= 4;
+  const hasCompdefs = checkCompdef.status === 0 && parseInt(checkCompdef.stdout) >= 4;
   addResult(
     "Init file contains compdef registrations (4 package managers)",
     hasCompdefs,
     hasCompdefs ? "" : `Expected 4 compdefs, found: ${checkCompdef.stdout}`,
   );
 
-  const checkDynamicLookup = spawnSync(
-    "grep",
-    ["-c", "_fjsf_get_original_completion", initFile],
-    {
-      encoding: "utf-8",
-      stdio: "pipe",
-    },
-  );
+  const checkDynamicLookup = spawnSync("grep", ["-c", "_fjsf_get_original_completion", initFile], {
+    encoding: "utf-8",
+    stdio: "pipe",
+  });
 
   const hasDynamicLookup =
     checkDynamicLookup.status === 0 && parseInt(checkDynamicLookup.stdout) >= 1;
   addResult(
     "Init file has dynamic completion lookup",
     hasDynamicLookup,
-    hasDynamicLookup
-      ? ""
-      : `Expected dynamic lookup function, found: ${checkDynamicLookup.stdout}`,
+    hasDynamicLookup ? "" : `Expected dynamic lookup function, found: ${checkDynamicLookup.stdout}`,
   );
 };
 
@@ -192,11 +174,7 @@ const testZshCompletionSystem = () => {
 
   const isInitFilePresent = existsSync(initFile);
   if (!isInitFilePresent) {
-    addResult(
-      "Zsh completion system test",
-      false,
-      "init.zsh not found, skipping",
-    );
+    addResult("Zsh completion system test", false, "init.zsh not found, skipping");
     return;
   }
 

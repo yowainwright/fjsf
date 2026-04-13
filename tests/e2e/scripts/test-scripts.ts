@@ -113,9 +113,7 @@ const runTest = (scenario: TestScenario): boolean => {
 
 const runAllTests = () => {
   console.log("Running scripts (default) mode e2e tests...\n");
-  console.log(
-    "Note: Scripts mode is interactive - limited validation in automated tests",
-  );
+  console.log("Note: Scripts mode is interactive - limited validation in automated tests");
 
   const results = scenarios.map(runTest);
   const passed = results.filter(Boolean).length;

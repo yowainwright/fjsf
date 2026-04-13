@@ -56,8 +56,7 @@ const splitTomlList = (content: string): string[] => {
   return items.filter(Boolean);
 };
 
-const parseTomlArray = (content: string): unknown[] =>
-  splitTomlList(content).map(parseTomlValue);
+const parseTomlArray = (content: string): unknown[] => splitTomlList(content).map(parseTomlValue);
 
 const parseTomlInlineTable = (content: string): TomlObj => {
   const obj: TomlObj = {};
@@ -75,13 +74,10 @@ const parseTomlValue = (raw: string): unknown => {
   if (s === "false") return false;
   if (s.startsWith('"""') && s.endsWith('"""')) return s.slice(3, -3);
   if (s.startsWith("'''") && s.endsWith("'''")) return s.slice(3, -3);
-  if (s.startsWith('"') && s.endsWith('"'))
-    return parseTomlString(s.slice(1, -1));
+  if (s.startsWith('"') && s.endsWith('"')) return parseTomlString(s.slice(1, -1));
   if (s.startsWith("'") && s.endsWith("'")) return s.slice(1, -1);
-  if (s.startsWith("[") && s.endsWith("]"))
-    return parseTomlArray(s.slice(1, -1));
-  if (s.startsWith("{") && s.endsWith("}"))
-    return parseTomlInlineTable(s.slice(1, -1));
+  if (s.startsWith("[") && s.endsWith("]")) return parseTomlArray(s.slice(1, -1));
+  if (s.startsWith("{") && s.endsWith("}")) return parseTomlInlineTable(s.slice(1, -1));
   const num = Number(s.replace(/_/g, ""));
   if (!isNaN(num) && s !== "") return num;
   return s;

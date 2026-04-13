@@ -30,8 +30,7 @@ export function extractScripts(
   workspace: string,
 ): JsonEntry[] {
   const fromCurrentLevel = SCRIPT_KEYS.filter(
-    (key) =>
-      key in obj && obj[key] && typeof obj[key] === "object" && !Array.isArray(obj[key]),
+    (key) => key in obj && obj[key] && typeof obj[key] === "object" && !Array.isArray(obj[key]),
   ).flatMap((key) => {
     const section = obj[key] as Record<string, unknown>;
     return Object.entries(section)
@@ -48,14 +47,9 @@ export function extractScripts(
   const fromNested = Object.entries(obj)
     .filter(
       ([key, value]) =>
-        !SCRIPT_KEYS.includes(key) &&
-        value &&
-        typeof value === "object" &&
-        !Array.isArray(value),
+        !SCRIPT_KEYS.includes(key) && value && typeof value === "object" && !Array.isArray(value),
     )
-    .flatMap(([, value]) =>
-      extractScripts(value as Record<string, unknown>, filePath, workspace),
-    );
+    .flatMap(([, value]) => extractScripts(value as Record<string, unknown>, filePath, workspace));
 
   return [...fromCurrentLevel, ...fromNested];
 }
@@ -82,13 +76,7 @@ export function flattenValue(
   }
 
   if (Array.isArray(value)) {
-    const selfEntry = createEntry(
-      path,
-      `Array(${value.length})`,
-      key,
-      filePath,
-      workspace,
-    );
+    const selfEntry = createEntry(path, `Array(${value.length})`, key, filePath, workspace);
     const childEntries = value.flatMap((item: unknown, i: number) =>
       flattenValue(item, `${path}[${i}]`, `[${i}]`, filePath, workspace),
     );
@@ -98,22 +86,10 @@ export function flattenValue(
   const isObject = typeof value === "object";
   if (isObject) {
     const keys = Object.keys(value as Record<string, unknown>);
-    const selfEntry = createEntry(
-      path,
-      `Object(${keys.length})`,
-      key,
-      filePath,
-      workspace,
-    );
+    const selfEntry = createEntry(path, `Object(${keys.length})`, key, filePath, workspace);
     const childEntries = keys.flatMap((k: string) => {
       const newPath = path ? `${path}.${k}` : k;
-      return flattenValue(
-        (value as Record<string, unknown>)[k],
-        newPath,
-        k,
-        filePath,
-        workspace,
-      );
+      return flattenValue((value as Record<string, unknown>)[k], newPath, k, filePath, workspace);
     });
     return [selfEntry, ...childEntries];
   }
@@ -126,9 +102,7 @@ export function flattenJson(
   filePath: string,
   workspace: string,
 ): JsonEntry[] {
-  return Object.keys(obj).flatMap((k: string) =>
-    flattenValue(obj[k], k, k, filePath, workspace),
-  );
+  return Object.keys(obj).flatMap((k: string) => flattenValue(obj[k], k, k, filePath, workspace));
 }
 
 function parseConfigFileAt(
@@ -150,7 +124,9 @@ function parseConfigFileAt(
 
   const relativePath = relative(cwd, filePath);
   const workspace =
-    (obj.name as string) || (obj.package as Record<string, unknown>)?.name as string || relativePath;
+    (obj.name as string) ||
+    ((obj.package as Record<string, unknown>)?.name as string) ||
+    relativePath;
 
   return { obj, relativePath, workspace };
 }
@@ -167,9 +143,7 @@ function discoverScriptEntries(filePaths: string[], cwd: string): JsonEntry[] {
         workspace: string;
       } => r !== null,
     )
-    .flatMap(({ obj, relativePath, workspace }) =>
-      extractScripts(obj, relativePath, workspace),
-    );
+    .flatMap(({ obj, relativePath, workspace }) => extractScripts(obj, relativePath, workspace));
 }
 
 function discoverAllEntries(filePaths: string[], cwd: string): JsonEntry[] {
@@ -184,15 +158,10 @@ function discoverAllEntries(filePaths: string[], cwd: string): JsonEntry[] {
         workspace: string;
       } => r !== null,
     )
-    .flatMap(({ obj, relativePath, workspace }) =>
-      flattenJson(obj, relativePath, workspace),
-    );
+    .flatMap(({ obj, relativePath, workspace }) => flattenJson(obj, relativePath, workspace));
 }
 
-export function getSelectionPrefix(
-  index: number,
-  selectedIndex: number,
-): string {
+export function getSelectionPrefix(index: number, selectedIndex: number): string {
   const isSelected = index === selectedIndex;
   return isSelected ? `${GREEN}>${RESET}` : " ";
 }
@@ -215,10 +184,7 @@ export function buildRemainingLines(matches: FuzzyMatch<JsonEntry>[]): string[] 
   return hasMore ? [`${DIM}`, `... ${remaining} more${RESET}`] : [];
 }
 
-export function renderJson(
-  state: InteractiveState<JsonEntry>,
-  title: string,
-): void {
+export function renderJson(state: InteractiveState<JsonEntry>, title: string): void {
   const scrollOffset = Math.max(
     0,
     Math.min(
@@ -228,16 +194,10 @@ export function renderJson(
   );
   const visibleMatches = state.matches.slice(scrollOffset, scrollOffset + MAX_VISIBLE);
 
-  const headerLines = [
-    `${BOLD}${CYAN}${title}${RESET}`,
-    "",
-    `Search: ${state.query}`,
-    "",
-  ];
+  const headerLines = [`${BOLD}${CYAN}${title}${RESET}`, "", `Search: ${state.query}`, ""];
 
-  const itemLines = visibleMatches.flatMap(
-    (match: FuzzyMatch<JsonEntry>, i: number) =>
-      formatJsonLine(match, scrollOffset + i, state.selectedIndex),
+  const itemLines = visibleMatches.flatMap((match: FuzzyMatch<JsonEntry>, i: number) =>
+    formatJsonLine(match, scrollOffset + i, state.selectedIndex),
   );
 
   const remainingLines = buildRemainingLines(state.matches);
@@ -254,10 +214,7 @@ export function updateState(
 ): InteractiveState<JsonEntry> {
   const getText = (e: JsonEntry): string => `${e.path} ${e.workspace}`;
   const matches = fuzzySearch(items, query, getText);
-  const clampedIndex = Math.min(
-    state.selectedIndex,
-    Math.max(0, matches.length - 1),
-  );
+  const clampedIndex = Math.min(state.selectedIndex, Math.max(0, matches.length - 1));
   return { query, selectedIndex: clampedIndex, matches, items };
 }
 
@@ -299,9 +256,7 @@ export function isPrintableChar(byte0: number): boolean {
   return byte0 >= KEY_CODES.PRINTABLE_START && byte0 < KEY_CODES.PRINTABLE_END;
 }
 
-export function createInitialState(
-  items: JsonEntry[],
-): InteractiveState<JsonEntry> {
+export function createInitialState(items: JsonEntry[]): InteractiveState<JsonEntry> {
   const getText = (e: JsonEntry): string => `${e.path} ${e.workspace}`;
   return {
     query: "",
@@ -546,11 +501,7 @@ export function main(): void {
     if (!options.filePath) exitWithError("No file path provided");
     const absolutePath = toAbsolutePath(cwd, options.filePath!);
     const entries = discoverAllEntries([absolutePath], cwd);
-    const selected = runInteractive(
-      entries,
-      renderJson,
-      `Path: ${options.filePath}`,
-    );
+    const selected = runInteractive(entries, renderJson, `Path: ${options.filePath}`);
     if (selected) executeEntry(selected.item);
     return;
   }
@@ -558,11 +509,7 @@ export function main(): void {
   if (options.filePath) {
     const absolutePath = toAbsolutePath(cwd, options.filePath);
     const entries = discoverScriptEntries([absolutePath], cwd);
-    const selected = runInteractive(
-      entries,
-      renderJson,
-      `Scripts: ${options.filePath}`,
-    );
+    const selected = runInteractive(entries, renderJson, `Scripts: ${options.filePath}`);
     if (selected) executeEntry(selected.item);
     return;
   }

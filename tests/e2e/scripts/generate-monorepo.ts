@@ -27,10 +27,7 @@ export const generateMonorepo = () => {
     },
   };
 
-  writeFileSync(
-    resolve(TEST_WORKSPACE_DIR, "package.json"),
-    JSON.stringify(rootPackage, null, 2),
-  );
+  writeFileSync(resolve(TEST_WORKSPACE_DIR, "package.json"), JSON.stringify(rootPackage, null, 2));
 
   const appAPackage = {
     name: "@test/app-a",
@@ -84,10 +81,7 @@ export const generateMonorepo = () => {
     JSON.stringify(libCPackage, null, 2),
   );
 
-  writeFileSync(
-    resolve(TEST_WORKSPACE_DIR, "../invalid.json"),
-    "{ this is not valid json }",
-  );
+  writeFileSync(resolve(TEST_WORKSPACE_DIR, "../invalid.json"), "{ this is not valid json }");
 
   console.log(`Test monorepo generated at: ${TEST_WORKSPACE_DIR}`);
   return TEST_WORKSPACE_DIR;

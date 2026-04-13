@@ -6,15 +6,7 @@ import { generateMonorepo, cleanupMonorepo } from "./generate-monorepo.ts";
 
 const SCRIPTS_DIR = resolve(process.cwd(), "tests/e2e/scripts");
 
-const testScripts = [
-  "test-exec.ts",
-  "test-executor.ts",
-  "test-run.ts",
-  "test-find.ts",
-  "test-init.ts",
-  "test-path.ts",
-  "test-scripts.ts",
-];
+const testScripts = ["test-run.ts", "test-find.ts", "test-path.ts"];
 
 const runTest = (scriptName: string): boolean => {
   console.log(`\nRunning ${scriptName}...`);

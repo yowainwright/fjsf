@@ -41,10 +41,7 @@ const checkOutputContent = (
   return true;
 };
 
-const verifyFjsfDirectory = (
-  success: boolean,
-  scenario: TestScenario,
-): boolean => {
+const verifyFjsfDirectory = (success: boolean, scenario: TestScenario): boolean => {
   const shouldVerify = success && scenario.verifyFjsfDir;
   if (!shouldVerify) return true;
 
@@ -57,9 +54,7 @@ const verifyFjsfDirectory = (
     return false;
   }
 
-  const hasAtLeastOneShellFile = shellFiles.some((file) =>
-    existsSync(resolve(fjsfDir, file)),
-  );
+  const hasAtLeastOneShellFile = shellFiles.some((file) => existsSync(resolve(fjsfDir, file)));
 
   if (!hasAtLeastOneShellFile) {
     console.log(`   No shell integration files created`);
@@ -77,11 +72,7 @@ const scenarios: TestScenario[] = [
     cwd: TEST_WORKSPACE_DIR,
     expectSuccess: true,
     description: "Run init command to setup shell integration",
-    shouldInclude: [
-      "fjsf shell integration setup",
-      "detected shell",
-      "setup complete",
-    ],
+    shouldInclude: ["fjsf shell integration setup", "detected shell", "setup complete"],
     verifyFjsfDir: true,
   },
 ];
@@ -96,9 +87,7 @@ const runTest = (scenario: TestScenario): boolean => {
     stdio: "pipe",
   });
 
-  const success = scenario.expectSuccess
-    ? result.status === 0
-    : result.status !== 0;
+  const success = scenario.expectSuccess ? result.status === 0 : result.status !== 0;
 
   const contentCheck = checkOutputContent(success, scenario, result);
   const fileCheck = verifyFjsfDirectory(success, scenario);
@@ -107,9 +96,7 @@ const runTest = (scenario: TestScenario): boolean => {
     console.log(`   PASS`);
   } else {
     console.log(`   FAIL`);
-    console.log(
-      `   Expected: ${scenario.expectSuccess ? "success" : "failure"}`,
-    );
+    console.log(`   Expected: ${scenario.expectSuccess ? "success" : "failure"}`);
     console.log(`   Got exit code: ${result.status}`);
     if (result.stdout) {
       console.log(`   stdout: ${result.stdout.substring(0, 300)}...`);
