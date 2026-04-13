@@ -75,8 +75,23 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build binary
-        run: bun run build:qjs
+      - name: Build JS bundle
+        run: |
+          mkdir -p dist bin
+          bun build src/cli.ts --outfile dist/cli.js --target browser --format esm --packages external --minify
+          VERSION=$(node -p "require('./package.json').version")
+          sed -i "s/__VERSION__/$VERSION/g" dist/cli.js
+
+      - name: Compile native binary
+        run: |
+          $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
+          QUICKJS_INCLUDE=$(find $HOME/.local/include -name "quickjs.h" -exec dirname {} \; | head -1)
+          QUICKJS_LIB=$(find $HOME/.local -name "libquickjs.a" | head -1)
+          gcc -o bin/fjsf-qjs dist/cli.c \
+            -I"$QUICKJS_INCLUDE" \
+            "$QUICKJS_LIB" \
+            -lm -lpthread -ldl
+          chmod +x bin/fjsf-qjs
 
       - name: Verify binary
         run: |
@@ -109,8 +124,23 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build binary
-        run: bun run build:qjs
+      - name: Build JS bundle
+        run: |
+          mkdir -p dist bin
+          bun build src/cli.ts --outfile dist/cli.js --target browser --format esm --packages external --minify
+          VERSION=$(node -p "require('./package.json').version")
+          sed -i "s/__VERSION__/$VERSION/g" dist/cli.js
+
+      - name: Compile native binary
+        run: |
+          $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
+          QUICKJS_INCLUDE=$(find $HOME/.local/include -name "quickjs.h" -exec dirname {} \; | head -1)
+          QUICKJS_LIB=$(find $HOME/.local -name "libquickjs.a" | head -1)
+          gcc -o bin/fjsf-qjs dist/cli.c \
+            -I"$QUICKJS_INCLUDE" \
+            "$QUICKJS_LIB" \
+            -lm -lpthread -ldl
+          chmod +x bin/fjsf-qjs
 
       - name: Verify binary
         run: |
