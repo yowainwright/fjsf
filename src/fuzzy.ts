@@ -1,15 +1,4 @@
-export interface FuzzyMatch<T> {
-  item: T;
-  score: number;
-  matches: number[];
-}
-
-export interface PackageScript {
-  name: string;
-  command: string;
-  workspace: string;
-  packagePath: string;
-}
+import type { FuzzyMatch } from "./types";
 
 const calculateScore = (
   text: string,
@@ -117,4 +106,3 @@ export const fuzzySearch = <T>(
   return sortedMatches;
 };
 
-export const getScriptText = (script: PackageScript): string => script.name;

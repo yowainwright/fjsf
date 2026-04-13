@@ -39,13 +39,7 @@ export interface Os {
   isatty(fd: number): boolean;
 }
 
-// Script types
-export interface PackageScript {
-  name: string;
-  command: string;
-  workspace: string;
-  packagePath: string;
-}
+export type FileFormat = "json" | "toml" | "yaml" | "unknown";
 
 export interface JsonEntry {
   path: string;
@@ -58,6 +52,7 @@ export interface JsonEntry {
 export interface FuzzyMatch<T> {
   item: T;
   score: number;
+  matches: number[];
 }
 
 export interface InteractiveState<T> {
@@ -67,36 +62,10 @@ export interface InteractiveState<T> {
   items: T[];
 }
 
-export interface WidgetContext {
-  ttyFd: number;
-  stdinFd: number;
-  lineCount: number;
-}
-
 export interface ParsedOptions {
   help: boolean;
   version: boolean;
   quit: boolean;
-  completions: boolean;
-  completionsQuery: string;
-  widget: boolean;
-  widgetQuery: string;
-  mode: "scripts" | "find" | "path" | "init" | "run-key";
+  mode: "default" | "find" | "path";
   filePath: string | undefined;
-  runKey: string | undefined;
-  initMode: "widget" | "native";
-}
-
-export type PackageManager = "npm" | "pnpm" | "yarn" | "bun";
-
-export interface ShellScripts {
-  widget: string;
-  native: string;
-  completions: string;
-}
-
-export interface AllShellScripts {
-  zsh: ShellScripts;
-  bash: ShellScripts;
-  fish: ShellScripts;
 }

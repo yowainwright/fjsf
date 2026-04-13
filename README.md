@@ -2,230 +2,140 @@
 
 [![npm version](https://badge.fury.io/js/fjsf.svg)](https://www.npmjs.com/package/fjsf)
 [![GitHub Actions](https://github.com/yowainwright/fjsf/workflows/Test/badge.svg)](https://github.com/yowainwright/fjsf/actions)
-[![codecov](https://codecov.io/gh/yowainwright/fjsf/branch/main/graph/badge.svg)](https://codecov.io/gh/yowainwright/fjsf)
 
-> ### Fuzzy JSON Search & Filter
+> ### Fuzzy Script Finder
 
-A zero-dependency CLI tool for fuzzy searching and executing scripts within json. This is especially useful for exploring `package.json` fields with dot notation, and querying any JSON config files across monorepos and regular projects.
-
-### Traverse. Search. Execute. Fuzzy search filter your JSON files in style. 🤘
+A zero-dependency CLI for fuzzy searching and executing scripts from JSON, TOML, and YAML config files. Works with `package.json`, `Cargo.toml`, `pyproject.toml`, `Taskfile.yml`, and more.
 
 <img src="https://github.com/user-attachments/assets/775d89a7-fc00-46eb-a1f6-c518a59d27a2" width=500 />
 
 ## Why fjsf?
 
-**Stop typing full script names.** Run `fjsf init` once, then just type `npm run <TAB>` and get an interactive tooltip with all your scripts. That's it.
+Stop typing full script names. Type `fjsf`, fuzzy search, press Enter.
 
-No more:
-
-- Typing `npm run test....<you forgot>`
-- Opening `package.json` to remember script names
-- Context switching between text and terminal
-
-Type less. Run faster. Stay in flow.
+Works wherever scripts live — npm, Cargo, Python tasks, Go taskfiles — no config needed.
 
 ## Architecture
 
-<p align="center">You start here. <br/> Lost. In a sea of monorepo workspaces trying to remember the script you need,<br />you type <code>fjsf</code> and...</p>
+<p align="center">You start here. <br/> Lost. In a sea of config files trying to remember the script you need,<br />you type <code>fjsf</code> and...</p>
 
 ```mermaid
 graph TD
     A[CLI Entry] --> B{Parse Mode}
-    B -->|scripts| C[Scripts Mode]
-    B -->|find| D[Find Mode]
-    B -->|path| E[Path Mode]
-    B -->|run| F[Run Mode]
-    B -->|init| G[Shell Integration]
-    B -->|help/quit| H[Exit]
+    B -->|default| C[Find Config Files]
+    B -->|find| D[Find by Filename]
+    B -->|path| E[Load Single File]
+    B -->|help/quit| F[Exit]
 
-    C --> I[Discover package.json]
-    I --> J[Extract Scripts]
-    J --> K[Fuzzy Search UI]
-    K --> L[Execute Script]
+    C --> G[Extract scripts/tasks/jobs]
+    D --> G
+    G --> H[Fuzzy Search UI]
+    H --> I[Execute Script]
 
-    D --> M[Find All Files]
-    M --> N[Flatten JSON]
-    N --> O[Cache with mtime]
-    O --> K
-
-    E --> P[Load Single File]
-    P --> N
-
-    F --> Q[Read JSON]
-    Q --> R[Validate Key]
-    R --> L
-
-    G --> S[Detect Shell]
-    S --> T[Add Autocomplete]
-    T --> U[Add Alias]
+    E --> J[Flatten All Keys]
+    J --> H
 ```
 
-<p align=center>You end here.<br />Just as lonely as before.<br />But you executed that npm script you needed lickety-split!</p>
+<p align="center">You end here.<br />Just as lonely as before.<br />But you executed that script you needed lickety-split!</p>
 
 ## Features
 
-- **Shell Integration**: Interactive tooltip when you type `npm run <TAB>` - fuzzy search scripts without leaving your terminal
-- **Scripts Mode**: Fuzzy search and execute npm scripts
-- **Find Mode**: Find all versions of a file across your repo and fuzzy search their JSON
-- **Path Mode**: Query a specific JSON file with fuzzy search
-- **Run Mode**: Execute specific keys from JSON files directly
-- **Smart Caching**: JSON files are cached in memory with mtime validation for instant searches
-- Supports monorepos with workspaces (npm, pnpm, yarn, bun)
-- Automatic package manager detection
-- Zero dependencies - built with Bun
+- **Multi-format**: reads `package.json`, `Cargo.toml`, `pyproject.toml`, `Taskfile.yml`, GitHub Actions, and any JSON/TOML/YAML config
+- **Nested task discovery**: finds `[tool.taskipy.tasks]`, `jobs:`, and other non-standard task paths automatically
+- **Default mode**: scans the current directory tree and collects all scripts
+- **Find mode**: locates every copy of a filename across a monorepo
+- **Path mode**: explores any config file with fuzzy search
+- Zero dependencies — compiled to a native binary via QuickJS
 - Interactive terminal UI with keyboard navigation
-- Shows which workspace and file each entry belongs to
 
-## Recipes
-
-### Shell Integration - Never Type Full Script Names Again
-
-Setup once:
+## Usage
 
 ```bash
-fjsf init               # Supports bash, zsh, fish
-# Restart your shell
+fjsf                        # Search all scripts in current directory tree
+fjsf find Cargo.toml        # Find all Cargo.toml files and search their scripts
+fjsf path pyproject.toml    # Explore a specific file
 ```
 
-Now type `npm run <TAB>` for instant fuzzy search:
+### Search scripts across any project
 
 ```bash
-npm run <TAB>
-# Interactive fuzzy search appears:
-# ❯ dev
-#   build
-#   test
-#   lint
-
-npm run t<TAB>
-# Filters to:
-# ❯ test
-#   test:e2e
-#   typecheck
-
-bun run bui<TAB>
-# Shows:
-# ❯ build
-#   build:binary
-#   build:all
+fjsf
+# Type to fuzzy filter, arrows to navigate, Enter to run, Esc/Ctrl+C to quit
 ```
 
-Works with npm, pnpm, yarn, and bun. Press Tab to search, arrow keys to navigate, Enter to run.
-
-**Using with fzf-tab?** Run `fjsf init --native` instead.
-
-**Customize key binding:** Edit `~/.fjsf/init.{zsh,bash,fish}` and change the bindkey (default is Tab/`^I`).
-
-**Uninstall:** `rm -rf ~/.fjsf` and remove the source line from your shell config.
-
-### Search & Execute Scripts
-
-```bash
-fjsf                    # Search all scripts in current repo
-fjsf ./package.json     # Search scripts in specific file
-```
-
-### Audit Dependencies Across Monorepo
+### Find scripts across a monorepo
 
 ```bash
 fjsf find package.json
-# Type: "react"
-# Shows: dependencies.react:[workspace-a] ^18.2.0
-#        dependencies.react:[workspace-b] ^18.0.0
-#        devDependencies.react:[workspace-c] ^17.0.2
+# Shows scripts from every package.json found in the tree
 ```
 
-### Check Configuration Consistency
+### Explore a config file
 
 ```bash
-fjsf find tsconfig.json
-# Type: "target"
-# Shows: compilerOptions.target:[packages/api] ES2020
-#        compilerOptions.target:[packages/web] ES2022
+fjsf path Taskfile.yml
+# Type: "build"
+# Shows all entries with "build" in the key or value
 ```
 
-### Discover Scripts Across Workspaces
+### Python projects with taskipy
 
 ```bash
-fjsf find package.json
-# Type: "scripts.test"
-# Shows: scripts.test:[workspace-a] jest
-#        scripts.test:[workspace-b] vitest
-```
-
-### Query Specific Config File
-
-```bash
-fjsf path ./tsconfig.json
-# Type: "strict"
-# Shows: compilerOptions.strict: true
-```
-
-### Run Script Directly
-
-```bash
-fjsf run package.json scripts.build    # Run build script
-fjsf r package.json scripts.test       # Run test (short form)
+fjsf path pyproject.toml
+# Finds tasks under [tool.taskipy.tasks] automatically
 ```
 
 ## Command Reference
 
 ```bash
-# Scripts mode (default)
-fjsf [file]             # Search & execute scripts
+# Default — scan directory for config files and extract scripts
+fjsf
 
-# Find mode - search all files with name
-fjsf find <filename>    # fjsf find package.json
-fjsf f <filename>       # Short form
+# Find mode — locate all files with that name and extract scripts
+fjsf find <filename>
+fjsf f <filename>
 
-# Path mode - query single file
-fjsf path <file>        # fjsf path ./tsconfig.json
-fjsf p <file>           # Short form
+# Path mode — load a single file and fuzzy search all entries
+fjsf path <file>
+fjsf p <file>
 
-# Run mode - run script directly
-fjsf run <file> <key>   # fjsf run package.json scripts.dev
-fjsf r <file> <key>     # Short form
-
-# Shell integration
-fjsf init               # Setup Tab completion
-fjsf init --native      # For fzf-tab users
+# Other
+fjsf help / fjsf --help     # Show usage
+fjsf --version / fjsf -v    # Show version
+fjsf quit / fjsf q          # Exit
 
 # Keyboard controls
-# Type to search (fuzzy), ↑/↓ to navigate, Enter to execute, q/Esc/Ctrl+C to quit
+# Type to fuzzy search, ↑/↓ to navigate, Enter to execute
+# q to quit (when search is empty), Esc or Ctrl+C to exit anytime
 ```
 
 ## Installation
+
+### Homebrew
+
+```bash
+brew tap yowainwright/tap
+brew install fjsf
+```
 
 ### npm
 
 ```bash
 bun install -g fjsf
-```
-
-### Homebrew
-
-```bash
-brew tap yowainwright/fjsf
-brew install fjsf
+# or: npm install -g fjsf
 ```
 
 ### Binary
 
-Download the latest binary for your platform from the [releases page](https://github.com/yowainwright/fjsf/releases):
+Download the latest binary from the [releases page](https://github.com/yowainwright/fjsf/releases):
 
 - macOS (Apple Silicon): `fjsf-qjs-darwin-arm64`
 - Linux x64: `fjsf-qjs-linux-x64`
-
-Make the binary executable and move it to your PATH:
 
 ```bash
 chmod +x fjsf-qjs-*
 sudo mv fjsf-qjs-* /usr/local/bin/fjsf
 ```
-
-## Troubleshooting
-
-**Tab completions not working:** Ensure completion files are loaded before `compinit` in your shell config. Clear cache with `rm -rf ~/.zcompdump*` and reload.
 
 ## License
 

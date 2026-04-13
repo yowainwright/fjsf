@@ -1,16 +1,17 @@
 {
   "name": "fjsf",
   "version": "0.2.10",
-  "description": "CLI tool for fuzzy searching npm scripts and JSON files with dot notation in monorepos",
+  "description": "CLI tool for fuzzy finding and executing scripts from JSON, TOML, and YAML config files",
   "keywords": [
     "fuzzy",
     "search",
     "json",
+    "toml",
+    "yaml",
     "cli",
-    "npm",
     "scripts",
-    "monorepo",
-    "package-json",
+    "tasks",
+    "execute",
     "bun"
   ],
   "author": "Jeff Wainwright <me@jeffry.in> (https://jeffry.in)",
@@ -34,19 +35,19 @@
     "test:integration": "bun test tests/integration",
     "test:e2e": "bun run tests/e2e/scripts/run-all.ts",
     "lint": "oxlint src",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
     "typecheck": "tsc --noEmit",
     "postinstall": "bun run scripts/install-hooks.ts",
     "prepublishOnly": "bun run format:check && bun run lint && bun run typecheck && bun test"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "oxlint": "^1.24.0",
-    "prettier": "^3.6.2"
+    "@types/bun": "1.3.1",
+    "oxlint": "1.24.0",
+    "oxfmt": "0.44.0"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "5.9.3"
   },
   "release-it": {
     "git": {

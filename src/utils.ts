@@ -1,24 +1,19 @@
 // @ts-nocheck - QuickJS modules are not typed
 import * as std from "std";
 import * as os from "os";
+import { parseToml } from "./parsers/toml";
+import { parseYaml } from "./parsers/yaml";
+import type { FileFormat } from "./types";
 
 // Path utilities
 export function join(...parts: string[]): string {
   return parts.filter(Boolean).join("/").replace(/\/+/g, "/");
 }
 
-export function dirname(path: string): string {
-  const idx = path.lastIndexOf("/");
-  return idx === -1 ? "." : path.slice(0, idx) || "/";
-}
-
-export function basename(path: string): string {
-  const idx = path.lastIndexOf("/");
-  return idx === -1 ? path : path.slice(idx + 1);
-}
-
 export function relative(from: string, to: string): string {
-  if (to.startsWith(from)) {
+  const isSubPath =
+    to.startsWith(from) && (to[from.length] === "/" || from.length === to.length);
+  if (isSubPath) {
     const rel = to.slice(from.length);
     return rel.startsWith("/") ? rel.slice(1) : rel;
   }
@@ -51,22 +46,6 @@ export function readFile(path: string): string | null {
   return std.loadFile(path);
 }
 
-export function writeFile(path: string, content: string): boolean {
-  const file = std.open(path, "w");
-  if (!file) return false;
-  file.puts(content);
-  file.close();
-  return true;
-}
-
-export function appendFile(path: string, content: string): boolean {
-  const file = std.open(path, "a");
-  if (!file) return false;
-  file.puts(content);
-  file.close();
-  return true;
-}
-
 // JSON utilities
 export function parseJson<T>(content: string): T | null {
   try {
@@ -74,16 +53,6 @@ export function parseJson<T>(content: string): T | null {
   } catch {
     return null;
   }
-}
-
-export function getNestedValue(
-  obj: Record<string, unknown>,
-  path: string,
-): unknown {
-  return path.split(".").reduce((current: unknown, key: string) => {
-    const isNullish = current === null || current === undefined;
-    return isNullish ? undefined : (current as Record<string, unknown>)[key];
-  }, obj);
 }
 
 // Directory traversal utilities
@@ -96,33 +65,6 @@ export function isTraversableDirectory(
   fullPath: string,
 ): boolean {
   return !isSkippableEntry(entry) && isDirectory(fullPath);
-}
-
-export function findPackageJsonFiles(
-  dir: string,
-  depth: number,
-  maxDepth: number,
-): string[] {
-  if (depth > maxDepth) return [];
-
-  const entries = readDir(dir);
-
-  const directMatches = entries
-    .filter((entry: string) => entry === "package.json")
-    .map((entry: string) => join(dir, entry));
-
-  const nestedMatches = entries
-    .filter((entry: string) => {
-      const fullPath = join(dir, entry);
-      return (
-        entry !== "package.json" && isTraversableDirectory(entry, fullPath)
-      );
-    })
-    .flatMap((entry: string) =>
-      findPackageJsonFiles(join(dir, entry), depth + 1, maxDepth),
-    );
-
-  return [...directMatches, ...nestedMatches];
 }
 
 export function findFilesByName(
@@ -151,91 +93,63 @@ export function findFilesByName(
   return [...directMatches, ...nestedMatches];
 }
 
-// Workspace utilities
-export function hasGlobPattern(pattern: string): boolean {
-  return pattern.includes("*");
+// Format detection
+const CONFIG_EXTENSIONS: Record<string, FileFormat> = {
+  json: "json",
+  toml: "toml",
+  yaml: "yaml",
+  yml: "yaml",
+};
+
+export function detectFileFormat(filePath: string): FileFormat {
+  const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+  return CONFIG_EXTENSIONS[ext] ?? "unknown";
 }
 
-export function getBaseDir(pattern: string): string {
-  const parts = pattern.split("*");
-  return parts[0] || "";
-}
+const CONFIG_PATTERNS = [".json", ".toml", ".yaml", ".yml"];
 
-export function isWorkspaceDirectory(basePath: string, entry: string): boolean {
-  const fullPath = join(basePath, entry);
-  const pkgPath = join(fullPath, "package.json");
-  return isDirectory(fullPath) && fileExists(pkgPath);
-}
+const CONFIG_BLOCKLIST = ["lock", "tsconfig"];
 
-export function expandGlobPattern(rootDir: string, pattern: string): string[] {
-  const basePath = join(rootDir, getBaseDir(pattern));
-  if (!fileExists(basePath)) return [];
+const isBlocklistedConfig = (filename: string): boolean =>
+  CONFIG_BLOCKLIST.some((pattern) => filename.includes(pattern));
 
-  return readDir(basePath)
-    .filter((entry: string) => isWorkspaceDirectory(basePath, entry))
-    .map((entry: string) => join(basePath, entry));
-}
-
-export function expandDirectPattern(
-  rootDir: string,
-  pattern: string,
+export function findConfigFiles(
+  dir: string,
+  depth: number,
+  maxDepth: number,
 ): string[] {
-  const fullPath = join(rootDir, pattern);
-  const pkgPath = join(fullPath, "package.json");
-  return fileExists(pkgPath) ? [fullPath] : [];
+  if (depth > maxDepth) return [];
+
+  const entries = readDir(dir);
+
+  const directMatches = entries
+    .filter(
+      (entry: string) =>
+        CONFIG_PATTERNS.some((ext) => entry.endsWith(ext)) &&
+        !isBlocklistedConfig(entry),
+    )
+    .map((entry: string) => join(dir, entry));
+
+  const nestedMatches = entries
+    .filter((entry: string) => {
+      const fullPath = join(dir, entry);
+      return isTraversableDirectory(entry, fullPath);
+    })
+    .flatMap((entry: string) =>
+      findConfigFiles(join(dir, entry), depth + 1, maxDepth),
+    );
+
+  return [...directMatches, ...nestedMatches];
 }
 
-export function expandWorkspacePattern(
-  rootDir: string,
-  pattern: string,
-): string[] {
-  return hasGlobPattern(pattern)
-    ? expandGlobPattern(rootDir, pattern)
-    : expandDirectPattern(rootDir, pattern);
-}
-
-export function expandWorkspaces(
-  rootDir: string,
-  patterns: string[],
-): string[] {
-  return patterns.flatMap((pattern: string) =>
-    expandWorkspacePattern(rootDir, pattern),
-  );
-}
-
-// Shell utilities
-export function getHomeDir(): string {
-  return std.getenv("HOME") || "/tmp";
-}
-
-export function detectShell(): string {
-  const shell = std.getenv("SHELL") || "";
-  if (shell.includes("zsh")) return "zsh";
-  if (shell.includes("bash")) return "bash";
-  if (shell.includes("fish")) return "fish";
-  return "unknown";
-}
-
-export function getShellConfigFile(shell: string): string {
-  const home = getHomeDir();
-
-  if (shell === "zsh") {
-    const zshrc = join(home, ".zshrc");
-    if (fileExists(zshrc)) return zshrc;
-    return join(home, ".zprofile");
-  }
-
-  if (shell === "bash") {
-    const bashrc = join(home, ".bashrc");
-    if (fileExists(bashrc)) return bashrc;
-    return join(home, ".bash_profile");
-  }
-
-  if (shell === "fish") {
-    return join(home, ".config", "fish", "config.fish");
-  }
-
-  return "";
+export function parseConfigFile(
+  content: string,
+  format: FileFormat,
+): Record<string, unknown> | null {
+  if (format === "json") return parseJson<Record<string, unknown>>(content);
+  if (format === "toml") return parseToml(content);
+  if (format === "yaml") return parseYaml(content);
+  return null;
 }
 
 // UTF-8 encoding utilities
@@ -314,12 +228,4 @@ export function spawnCommand(cmd: string[]): void {
 
 export function getCwd(): string {
   return os.getcwd()[0];
-}
-
-export function changeDir(path: string): void {
-  os.chdir(path);
-}
-
-export function makeDir(path: string): void {
-  os.mkdir(path);
 }
