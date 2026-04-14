@@ -1,6 +1,6 @@
 {
   "name": "fjsf",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "CLI tool for fuzzy finding and executing scripts from JSON, TOML, and YAML config files",
   "keywords": [
     "bun",
