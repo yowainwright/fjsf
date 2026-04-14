@@ -65,36 +65,16 @@ jobs:
 
       - name: Build and Install QuickJS
         run: |
-          git clone --depth 1 https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
+          git clone --depth 1 https://github.com/bellard/quickjs /tmp/quickjs
           cd /tmp/quickjs
-          cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local -DBUILD_SHARED_LIBS=OFF
-          cmake --build build -j$(nproc)
-          cmake --install build
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          make -j$(nproc)
+          echo "/tmp/quickjs" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: bun install
 
-      - name: Build JS bundle
-        run: |
-          mkdir -p dist bin
-          bun build src/cli.ts --outfile dist/cli.js --target browser --format esm --packages external --minify
-          VERSION=$(node -p "require('./package.json').version")
-          sed -i "s/__VERSION__/$VERSION/g" dist/cli.js
-
-      - name: Compile native binary
-        run: |
-          set -e
-          $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
-          QUICKJS_INCLUDE=$(find $HOME/.local/include -name "quickjs.h" -exec dirname {} \; | head -1)
-          QUICKJS_LIB=$(find $HOME/.local -name "libquickjs.a" | head -1)
-          test -n "$QUICKJS_INCLUDE" || { echo "ERROR: quickjs.h not found"; exit 1; }
-          test -n "$QUICKJS_LIB" || { echo "ERROR: libquickjs.a not found"; exit 1; }
-          gcc -o bin/fjsf-qjs dist/cli.c \
-            -I"$QUICKJS_INCLUDE" \
-            "$QUICKJS_LIB" \
-            -lm -lpthread -ldl
-          chmod +x bin/fjsf-qjs
+      - name: Build binary
+        run: bun run build:qjs
 
       - name: Verify binary
         run: |
@@ -117,36 +97,16 @@ jobs:
 
       - name: Build and Install QuickJS
         run: |
-          git clone --depth 1 https://github.com/quickjs-ng/quickjs.git /tmp/quickjs
+          git clone --depth 1 https://github.com/bellard/quickjs /tmp/quickjs
           cd /tmp/quickjs
-          cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local -DBUILD_SHARED_LIBS=OFF
-          cmake --build build -j$(nproc)
-          cmake --install build
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          make -j$(nproc)
+          echo "/tmp/quickjs" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: bun install
 
-      - name: Build JS bundle
-        run: |
-          mkdir -p dist bin
-          bun build src/cli.ts --outfile dist/cli.js --target browser --format esm --packages external --minify
-          VERSION=$(node -p "require('./package.json').version")
-          sed -i "s/__VERSION__/$VERSION/g" dist/cli.js
-
-      - name: Compile native binary
-        run: |
-          set -e
-          $HOME/.local/bin/qjsc -e -m -o dist/cli.c dist/cli.js
-          QUICKJS_INCLUDE=$(find $HOME/.local/include -name "quickjs.h" -exec dirname {} \; | head -1)
-          QUICKJS_LIB=$(find $HOME/.local -name "libquickjs.a" | head -1)
-          test -n "$QUICKJS_INCLUDE" || { echo "ERROR: quickjs.h not found"; exit 1; }
-          test -n "$QUICKJS_LIB" || { echo "ERROR: libquickjs.a not found"; exit 1; }
-          gcc -o bin/fjsf-qjs dist/cli.c \
-            -I"$QUICKJS_INCLUDE" \
-            "$QUICKJS_LIB" \
-            -lm -lpthread -ldl
-          chmod +x bin/fjsf-qjs
+      - name: Build binary
+        run: bun run build:qjs
 
       - name: Verify binary
         run: |
