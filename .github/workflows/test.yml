@@ -68,7 +68,7 @@ jobs:
           git clone --depth 1 https://github.com/bellard/quickjs /tmp/quickjs
           cd /tmp/quickjs
           make -j$(nproc)
-          echo "/tmp/quickjs" >> $GITHUB_PATH
+          sudo make install
 
       - name: Install dependencies
         run: bun install
@@ -100,7 +100,7 @@ jobs:
           git clone --depth 1 https://github.com/bellard/quickjs /tmp/quickjs
           cd /tmp/quickjs
           make -j$(nproc)
-          echo "/tmp/quickjs" >> $GITHUB_PATH
+          sudo make install
 
       - name: Install dependencies
         run: bun install
