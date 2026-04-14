@@ -26,10 +26,7 @@ const scenarios: TestScenario[] = [
           hello: 'echo "Hello from script"',
         },
       };
-      writeFileSync(
-        join(TEST_DIR, "package.json"),
-        JSON.stringify(pkg, null, 2),
-      );
+      writeFileSync(join(TEST_DIR, "package.json"), JSON.stringify(pkg, null, 2));
     },
     args: ["run", "package.json", "scripts.hello"],
     expectSuccess: true,
@@ -45,10 +42,7 @@ const scenarios: TestScenario[] = [
           fail: "exit 1",
         },
       };
-      writeFileSync(
-        join(TEST_DIR, "package.json"),
-        JSON.stringify(pkg, null, 2),
-      );
+      writeFileSync(join(TEST_DIR, "package.json"), JSON.stringify(pkg, null, 2));
     },
     args: ["run", "package.json", "scripts.fail"],
     expectSuccess: false,
@@ -63,10 +57,7 @@ const scenarios: TestScenario[] = [
           version: "bun --version",
         },
       };
-      writeFileSync(
-        join(TEST_DIR, "package.json"),
-        JSON.stringify(pkg, null, 2),
-      );
+      writeFileSync(join(TEST_DIR, "package.json"), JSON.stringify(pkg, null, 2));
     },
     args: ["run", "package.json", "scripts.version"],
     expectSuccess: true,
@@ -81,10 +72,7 @@ const scenarios: TestScenario[] = [
           multi: 'echo "First" && echo "Second"',
         },
       };
-      writeFileSync(
-        join(TEST_DIR, "package.json"),
-        JSON.stringify(pkg, null, 2),
-      );
+      writeFileSync(join(TEST_DIR, "package.json"), JSON.stringify(pkg, null, 2));
     },
     args: ["run", "package.json", "scripts.multi"],
     expectSuccess: true,
@@ -100,10 +88,7 @@ const scenarios: TestScenario[] = [
           env: 'echo "NODE_ENV: $NODE_ENV"',
         },
       };
-      writeFileSync(
-        join(TEST_DIR, "package.json"),
-        JSON.stringify(pkg, null, 2),
-      );
+      writeFileSync(join(TEST_DIR, "package.json"), JSON.stringify(pkg, null, 2));
     },
     args: ["run", "package.json", "scripts.env"],
     expectSuccess: true,
@@ -133,16 +118,12 @@ const runTest = (scenario: TestScenario): boolean => {
     stdio: "pipe",
   });
 
-  const success = scenario.expectSuccess
-    ? result.status === 0
-    : result.status !== 0;
+  const success = scenario.expectSuccess ? result.status === 0 : result.status !== 0;
 
   let contentCheck = true;
   if (success && scenario.shouldOutputContain) {
     const output = (result.stdout || "") + (result.stderr || "");
-    const missing = scenario.shouldOutputContain.filter(
-      (item) => !output.includes(item),
-    );
+    const missing = scenario.shouldOutputContain.filter((item) => !output.includes(item));
 
     if (missing.length > 0) {
       contentCheck = false;
@@ -154,9 +135,7 @@ const runTest = (scenario: TestScenario): boolean => {
     console.log(`   PASS`);
   } else {
     console.log(`   FAIL`);
-    console.log(
-      `   Expected: ${scenario.expectSuccess ? "success" : "failure"}`,
-    );
+    console.log(`   Expected: ${scenario.expectSuccess ? "success" : "failure"}`);
     console.log(`   Got exit code: ${result.status}`);
     if (result.stdout) {
       console.log(`   stdout: ${result.stdout.substring(0, 200)}`);

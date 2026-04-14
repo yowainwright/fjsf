@@ -1,39 +1,34 @@
 export const VERSION = "__VERSION__";
 
-export const HELP_TEXT = `fjsf v${VERSION} - Fuzzy JSON Search & Filter
+export const HELP_TEXT = `fjsf v${VERSION} - Fuzzy JSON Script Finder
 
 USAGE:
-  fjsf                      Search and run npm scripts (default)
-  fjsf <package.json>       Search specific package.json scripts
-  fjsf find <file>          Find all versions of file and fuzzy search JSON
-  fjsf f <file>             Short form of find
-  fjsf path <file>          Query a specific JSON file (single file)
-  fjsf p <file>             Short form of path
-  fjsf run <file> <key>     Run a specific key from JSON file
-  fjsf r <file> <key>       Short form of run
-  fjsf init                 Setup shell integration (widget mode, default)
-  fjsf init --native        Setup with native completions (works with fzf-tab)
-  fjsf completions [query]  Output completions for shell integration
-  fjsf help                 Show this help
-  fjsf h                    Short form of help
-  fjsf quit                 Exit
-  fjsf q                    Short form of quit
+  fjsf                    Find all config files recursively, extract scripts, fuzzy search
+  fjsf <file>             Extract scripts from a specific file
+  fjsf find <name>        Find all files named <name> recursively, extract scripts
+  fjsf f <name>           Short form of find
+  fjsf path <file>        Search ALL keys in a file (not just scripts)
+  fjsf p <file>           Short form of path
+  fjsf help | --help | -h Show this help
+  fjsf --version | -v     Show version
 
 EXAMPLES:
-  fjsf                            # Search all npm scripts
-  fjsf ./package.json             # Search specific package.json scripts
-  fjsf find package.json          # Find all package.json, search all
-  fjsf f tsconfig.json            # Find all tsconfig.json
-  fjsf path ./tsconfig.json       # Query single tsconfig.json file
-  fjsf p ./package.json           # Query single package.json
-  fjsf run package.json scripts.build   # Run build script
-  fjsf r package.json scripts.test      # Run test script
-  fjsf completions                # List all scripts for completion
-  fjsf completions test           # Filter completions matching "test"
+  fjsf                          # Find all scripts in config files
+  fjsf ./package.json           # Extract scripts from specific file
+  fjsf find package.json        # Find all package.json files recursively
+  fjsf f Cargo.toml             # Find all Cargo.toml files recursively
+  fjsf path ./pyproject.toml    # Search all keys in pyproject.toml
+  fjsf p ./docker-compose.yml   # Search all keys in docker-compose.yml
+
+SUPPORTED FORMATS:
+  JSON   scripts, tasks sections
+  TOML   [scripts], [tasks], [tool.taskipy.tasks] sections
+  YAML   scripts:, tasks:, jobs: sections
 
 KEYBOARD CONTROLS:
   Type              Fuzzy search
   Up/Down arrows    Navigate results
-  Enter             Run selected (scripts mode)
-  q, Esc, Ctrl+C    Exit
+  Enter             Execute selected value as shell command
+  q                 Exit (when search is empty)
+  Esc, Ctrl+C       Exit anytime
 `;

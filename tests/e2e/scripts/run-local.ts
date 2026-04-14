@@ -63,9 +63,7 @@ if (import.meta.main) {
     console.log("Setting up test workspace...");
     generateMonorepo();
 
-    const testFile = specificTest.endsWith(".ts")
-      ? specificTest
-      : `test-${specificTest}.ts`;
+    const testFile = specificTest.endsWith(".ts") ? specificTest : `test-${specificTest}.ts`;
 
     if (testScripts.includes(testFile)) {
       const success = runTest(testFile);

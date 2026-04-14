@@ -1,8 +1,8 @@
 export const KEY_CODES = {
   CTRL_C: 3,
   BACKSPACE: 8,
-  ENTER_CR: 10,
-  ENTER_LF: 13,
+  ENTER_LF: 10,
+  ENTER_CR: 13,
   ESCAPE: 27,
   BRACKET: 91,
   BRACKET_APP: 79,
@@ -28,10 +28,6 @@ export const TERMINAL = {
   HIDE_CURSOR: "\x1b[?25l",
   SHOW_CURSOR: "\x1b[?25h",
   CLEAR_SCREEN: "\x1b[2J\x1b[H",
-  SAVE_CURSOR: "\x1b[s",
-  RESTORE_CURSOR: "\x1b[u",
-  CLEAR_LINE: "\x1b[2K",
-  MOVE_UP: "\x1b[1A",
 } as const;
 
 export const MAX_VISIBLE = 10;

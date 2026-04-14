@@ -104,17 +104,13 @@ const runTest = (scenario: TestScenario): boolean => {
     stdio: "pipe",
   });
 
-  const success = scenario.expectSuccess
-    ? result.status === 0
-    : result.status !== 0;
+  const success = scenario.expectSuccess ? result.status === 0 : result.status !== 0;
 
   if (success) {
     console.log(`   PASS`);
   } else {
     console.log(`   FAIL`);
-    console.log(
-      `   Expected: ${scenario.expectSuccess ? "success" : "failure"}`,
-    );
+    console.log(`   Expected: ${scenario.expectSuccess ? "success" : "failure"}`);
     console.log(`   Got exit code: ${result.status}`);
     if (result.stdout) {
       console.log(`   stdout: ${result.stdout}`);

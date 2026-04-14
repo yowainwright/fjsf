@@ -30,10 +30,7 @@ const findQjsc = async (): Promise<string | null> => {
     return inPath.text().trim();
   }
 
-  const locations = [
-    `${process.env.HOME}/.local/bin/qjsc`,
-    "/usr/local/bin/qjsc",
-  ];
+  const locations = [`${process.env.HOME}/.local/bin/qjsc`, "/usr/local/bin/qjsc"];
 
   const results = await Promise.all(
     locations.map(async (loc) => {
@@ -47,9 +44,7 @@ const findQjsc = async (): Promise<string | null> => {
 
 const qjscPath = await findQjsc();
 if (!qjscPath) {
-  console.error(
-    "\nError: qjsc not found. Install QuickJS to compile native binary:",
-  );
+  console.error("\nError: qjsc not found. Install QuickJS to compile native binary:");
   console.error("  macOS: brew install quickjs");
   console.error(
     "  Linux: git clone https://github.com/quickjs-ng/quickjs.git && cd quickjs && cmake -B build && cmake --build build && sudo cmake --install build",

@@ -1,20 +1,13 @@
 import { describe, it, expect } from "bun:test";
+import { parseToml } from "../../src/parsers/toml";
+import { parseYaml } from "../../src/parsers/yaml";
 
 const join = (...parts: (string | undefined | null)[]): string =>
   parts.filter(Boolean).join("/").replace(/\/+/g, "/");
 
-const dirname = (path: string): string => {
-  const idx = path.lastIndexOf("/");
-  return idx === -1 ? "." : path.slice(0, idx) || "/";
-};
-
-const basename = (path: string): string => {
-  const idx = path.lastIndexOf("/");
-  return idx === -1 ? path : path.slice(idx + 1);
-};
-
 const relative = (from: string, to: string): string => {
-  if (to.startsWith(from)) {
+  const isSubPath = to.startsWith(from) && (to[from.length] === "/" || from.length === to.length);
+  if (isSubPath) {
     const rel = to.slice(from.length);
     return rel.startsWith("/") ? rel.slice(1) : rel;
   }
@@ -26,13 +19,6 @@ const toAbsolutePath = (cwd: string, filePath: string): string =>
 
 const isSkippableEntry = (entry: string): boolean =>
   entry === "node_modules" || entry.startsWith(".");
-
-const hasGlobPattern = (pattern: string): boolean => pattern.includes("*");
-
-const getBaseDir = (pattern: string): string => {
-  const parts = pattern.split("*");
-  return parts[0] || "";
-};
 
 const parseJson = (content: string): unknown => {
   try {
@@ -70,13 +56,7 @@ const flattenValue = (
   }
 
   if (Array.isArray(value)) {
-    const selfEntry = createEntry(
-      path,
-      `Array(${value.length})`,
-      key,
-      filePath,
-      workspace,
-    );
+    const selfEntry = createEntry(path, `Array(${value.length})`, key, filePath, workspace);
     const childEntries = value.flatMap((item, i) =>
       flattenValue(item, `${path}[${i}]`, `[${i}]`, filePath, workspace),
     );
@@ -86,22 +66,10 @@ const flattenValue = (
   const isObject = typeof value === "object";
   if (isObject) {
     const keys = Object.keys(value as Record<string, unknown>);
-    const selfEntry = createEntry(
-      path,
-      `Object(${keys.length})`,
-      key,
-      filePath,
-      workspace,
-    );
+    const selfEntry = createEntry(path, `Object(${keys.length})`, key, filePath, workspace);
     const childEntries = keys.flatMap((k) => {
       const newPath = path ? `${path}.${k}` : k;
-      return flattenValue(
-        (value as Record<string, unknown>)[k],
-        newPath,
-        k,
-        filePath,
-        workspace,
-      );
+      return flattenValue((value as Record<string, unknown>)[k], newPath, k, filePath, workspace);
     });
     return [selfEntry, ...childEntries];
   }
@@ -111,113 +79,73 @@ const flattenValue = (
 
 const flattenJson = (
   obj: Record<string, unknown>,
-  _prefix: string,
   filePath: string,
   workspace: string,
-): JsonEntry[] =>
-  Object.keys(obj).flatMap((k) =>
-    flattenValue(obj[k], k, k, filePath, workspace),
-  );
+): JsonEntry[] => Object.keys(obj).flatMap((k) => flattenValue(obj[k], k, k, filePath, workspace));
 
-const getNestedValue = (obj: Record<string, unknown>, path: string): unknown =>
-  path.split(".").reduce((current: unknown, key: string) => {
-    const isNullish = current === null || current === undefined;
-    return isNullish ? undefined : (current as Record<string, unknown>)[key];
-  }, obj);
+type FileFormat = "json" | "toml" | "yaml" | "unknown";
 
-const getWorkspacePatterns = (packageJson: {
-  workspaces?: string[] | { packages?: string[] };
-}): string[] => {
-  const workspaces = packageJson.workspaces;
-  if (Array.isArray(workspaces)) return workspaces;
-  if (workspaces && workspaces.packages) return workspaces.packages;
-  return [];
+const CONFIG_EXTENSIONS: Record<string, FileFormat> = {
+  json: "json",
+  toml: "toml",
+  yaml: "yaml",
+  yml: "yaml",
 };
 
-interface Script {
-  name: string;
-  command: string;
-  workspace: string;
-  packagePath: string;
-}
-
-const buildRunCommand = (script: Script, pm: string): string[] => {
-  const isRootPackage = script.packagePath === "package.json";
-
-  if (pm === "pnpm") {
-    return isRootPackage
-      ? ["pnpm", "run", script.name]
-      : ["pnpm", "--filter", script.workspace, "run", script.name];
-  }
-
-  if (pm === "yarn") {
-    return isRootPackage
-      ? ["yarn", "run", script.name]
-      : ["yarn", "workspace", script.workspace, "run", script.name];
-  }
-
-  if (pm === "bun") {
-    return isRootPackage
-      ? ["bun", "run", script.name]
-      : ["bun", "--filter", script.workspace, "run", script.name];
-  }
-
-  return isRootPackage
-    ? ["npm", "run", script.name]
-    : ["npm", "run", script.name, "--workspace=" + script.workspace];
+const detectFileFormat = (filePath: string): FileFormat => {
+  const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+  return CONFIG_EXTENSIONS[ext] ?? "unknown";
 };
 
-const buildSimpleRunCommand = (pm: string, scriptName: string): string[] => {
-  const commands: Record<string, string[]> = {
-    pnpm: ["pnpm", "run", scriptName],
-    yarn: ["yarn", "run", scriptName],
-    bun: ["bun", "run", scriptName],
-    npm: ["npm", "run", scriptName],
-  };
-  return commands[pm] ?? commands.npm!;
-};
+const SCRIPT_KEYS = ["scripts", "tasks", "jobs"];
 
-const matchesQuery = (
-  script: { name: string; workspace: string },
-  lowerQuery: string,
-): boolean => {
-  if (!lowerQuery) return true;
-  const nameMatches = script.name.toLowerCase().includes(lowerQuery);
-  const workspaceMatches = script.workspace.toLowerCase().includes(lowerQuery);
-  return nameMatches || workspaceMatches;
-};
+const extractScripts = (
+  obj: Record<string, unknown>,
+  filePath: string,
+  workspace: string,
+): JsonEntry[] => {
+  const fromCurrentLevel = SCRIPT_KEYS.filter(
+    (key) => key in obj && obj[key] && typeof obj[key] === "object" && !Array.isArray(obj[key]),
+  ).flatMap((key) => {
+    const section = obj[key] as Record<string, unknown>;
+    return Object.entries(section)
+      .filter(([, value]) => typeof value === "string")
+      .map(([name, value]) => ({
+        path: name,
+        value: value as string,
+        key: name,
+        filePath,
+        workspace,
+      }));
+  });
 
-const formatCompletion = (script: Script): string =>
-  `${script.name}:[${script.workspace}] ${script.command}`;
+  const fromNested = Object.entries(obj)
+    .filter(
+      ([key, value]) =>
+        !SCRIPT_KEYS.includes(key) && value && typeof value === "object" && !Array.isArray(value),
+    )
+    .flatMap(([, value]) => extractScripts(value as Record<string, unknown>, filePath, workspace));
+
+  return [...fromCurrentLevel, ...fromNested];
+};
 
 const createDefaultOptions = () => ({
   help: false,
   version: false,
   quit: false,
-  completions: false,
-  completionsQuery: "",
-  mode: "scripts",
+  mode: "default" as "default" | "find" | "path",
   filePath: undefined as string | undefined,
-  execKey: undefined as string | undefined,
-  initMode: "widget",
 });
 
-const isHelpArg = (arg: string): boolean =>
-  ["help", "h", "--help", "-h"].includes(arg);
+const isHelpArg = (arg: string): boolean => ["help", "h", "--help", "-h"].includes(arg);
 
-const isVersionArg = (arg: string): boolean =>
-  ["--version", "-v"].includes(arg);
+const isVersionArg = (arg: string): boolean => ["--version", "-v"].includes(arg);
 
 const isQuitArg = (arg: string): boolean => ["quit", "q"].includes(arg);
-
-const isCompletionsArg = (arg: string): boolean =>
-  ["completions", "--completions"].includes(arg);
 
 const isFindArg = (arg: string): boolean => ["find", "f"].includes(arg);
 
 const isPathArg = (arg: string): boolean => ["path", "p"].includes(arg);
-
-const isExecArg = (arg: string): boolean => ["exec", "e"].includes(arg);
 
 const hasNextArg = (args: string[], i: number): boolean => i + 1 < args.length;
 
@@ -227,8 +155,8 @@ const getNextArg = (args: string[], i: number): string | undefined =>
 const KEY_CODES = {
   CTRL_C: 3,
   BACKSPACE: 8,
-  ENTER_CR: 10,
-  ENTER_LF: 13,
+  ENTER_LF: 10,
+  ENTER_CR: 13,
   ESCAPE: 27,
   BRACKET: 91,
   BRACKET_APP: 79,
@@ -240,11 +168,10 @@ const KEY_CODES = {
   PRINTABLE_END: 127,
 };
 
-const isExitKey = (byte0: number, key: Uint8Array): boolean => {
+const isHardExit = (byte0: number, key: Uint8Array): boolean => {
   const isCtrlC = byte0 === KEY_CODES.CTRL_C;
   const isEscape = byte0 === KEY_CODES.ESCAPE && key.length === 1;
-  const isQKey = byte0 === KEY_CODES.Q;
-  return isCtrlC || isEscape || isQKey;
+  return isCtrlC || isEscape;
 };
 
 const isEnterKey = (byte0: number): boolean =>
@@ -258,23 +185,16 @@ const isArrowSequence = (byte0: number, key: Uint8Array): boolean => {
   return isEscape && hasEnoughBytes && (isNormalMode || isAppMode);
 };
 
-const isWidgetArg = (arg: string): boolean => ["--widget", "-w"].includes(arg);
+const isHighSurrogate = (code: number): boolean => code >= 0xd800 && code < 0xdc00;
 
-const isHighSurrogate = (code: number): boolean =>
-  code >= 0xd800 && code < 0xdc00;
-
-const isLowSurrogate = (code: number): boolean =>
-  code >= 0xdc00 && code < 0xe000;
+const isLowSurrogate = (code: number): boolean => code >= 0xdc00 && code < 0xe000;
 
 const decodeSurrogatePair = (high: number, low: number): number =>
   ((high - 0xd800) << 10) + (low - 0xdc00) + 0x10000;
 
 const encodeOneByteChar = (code: number): number[] => [code];
 
-const encodeTwoByteChar = (code: number): number[] => [
-  0xc0 | (code >> 6),
-  0x80 | (code & 0x3f),
-];
+const encodeTwoByteChar = (code: number): number[] => [0xc0 | (code >> 6), 0x80 | (code & 0x3f)];
 
 const encodeThreeByteChar = (code: number): number[] => [
   0xe0 | (code >> 12),
@@ -348,38 +268,6 @@ describe("Path utilities", () => {
     });
   });
 
-  describe("dirname", () => {
-    it("returns parent directory", () => {
-      expect(dirname("/a/b/c")).toBe("/a/b");
-    });
-
-    it("returns / for root paths", () => {
-      expect(dirname("/a")).toBe("/");
-    });
-
-    it("returns . for paths without /", () => {
-      expect(dirname("file.txt")).toBe(".");
-    });
-
-    it("handles nested paths", () => {
-      expect(dirname("/usr/local/bin/file")).toBe("/usr/local/bin");
-    });
-  });
-
-  describe("basename", () => {
-    it("returns file name from path", () => {
-      expect(basename("/a/b/c.txt")).toBe("c.txt");
-    });
-
-    it("returns input if no /", () => {
-      expect(basename("file.txt")).toBe("file.txt");
-    });
-
-    it("handles directories", () => {
-      expect(basename("/a/b/c")).toBe("c");
-    });
-  });
-
   describe("relative", () => {
     it("returns relative path when to starts with from", () => {
       expect(relative("/a/b", "/a/b/c/d")).toBe("c/d");
@@ -396,6 +284,10 @@ describe("Path utilities", () => {
     it("handles exact match", () => {
       expect(relative("/a/b", "/a/b")).toBe("");
     });
+
+    it("does not match /a/bc as subpath of /a/b", () => {
+      expect(relative("/a/b", "/a/bc/d")).toBe("/a/bc/d");
+    });
   });
 
   describe("toAbsolutePath", () => {
@@ -404,15 +296,11 @@ describe("Path utilities", () => {
     });
 
     it("joins cwd with relative path", () => {
-      expect(toAbsolutePath("/cwd", "relative/path")).toBe(
-        "/cwd/relative/path",
-      );
+      expect(toAbsolutePath("/cwd", "relative/path")).toBe("/cwd/relative/path");
     });
 
     it("handles current directory", () => {
-      expect(toAbsolutePath("/home/user", "file.txt")).toBe(
-        "/home/user/file.txt",
-      );
+      expect(toAbsolutePath("/home/user", "file.txt")).toBe("/home/user/file.txt");
     });
   });
 });
@@ -431,34 +319,6 @@ describe("Entry filtering", () => {
     it("returns false for regular directories", () => {
       expect(isSkippableEntry("src")).toBe(false);
       expect(isSkippableEntry("packages")).toBe(false);
-    });
-  });
-});
-
-describe("Glob utilities", () => {
-  describe("hasGlobPattern", () => {
-    it("returns true for patterns with *", () => {
-      expect(hasGlobPattern("packages/*")).toBe(true);
-      expect(hasGlobPattern("*")).toBe(true);
-    });
-
-    it("returns false for patterns without *", () => {
-      expect(hasGlobPattern("packages/app")).toBe(false);
-      expect(hasGlobPattern("src")).toBe(false);
-    });
-  });
-
-  describe("getBaseDir", () => {
-    it("returns part before *", () => {
-      expect(getBaseDir("packages/*")).toBe("packages/");
-    });
-
-    it("returns empty string for leading *", () => {
-      expect(getBaseDir("*")).toBe("");
-    });
-
-    it("handles multiple *", () => {
-      expect(getBaseDir("a/*/b/*")).toBe("a/");
     });
   });
 });
@@ -487,13 +347,7 @@ describe("JSON utilities", () => {
 
   describe("createEntry", () => {
     it("creates entry object", () => {
-      const entry = createEntry(
-        "path.to.key",
-        "value",
-        "key",
-        "file.json",
-        "workspace",
-      );
+      const entry = createEntry("path.to.key", "value", "key", "file.json", "workspace");
       expect(entry).toEqual({
         path: "path.to.key",
         value: "value",
@@ -526,13 +380,7 @@ describe("JSON utilities", () => {
     });
 
     it("flattens objects", () => {
-      const entries = flattenValue(
-        { a: 1, b: 2 },
-        "obj",
-        "obj",
-        "file.json",
-        "ws",
-      );
+      const entries = flattenValue({ a: 1, b: 2 }, "obj", "obj", "file.json", "ws");
       expect(entries).toHaveLength(3);
       expect(entries[0]!.value).toBe("Object(2)");
       expect(entries[1]!.path).toBe("obj.a");
@@ -549,225 +397,242 @@ describe("JSON utilities", () => {
   describe("flattenJson", () => {
     it("flattens top-level object", () => {
       const obj = { name: "test", version: "1.0.0" };
-      const entries = flattenJson(obj, "", "file.json", "ws");
+      const entries = flattenJson(obj, "file.json", "ws");
       expect(entries.some((e) => e.path === "name")).toBe(true);
       expect(entries.some((e) => e.path === "version")).toBe(true);
     });
   });
+});
 
-  describe("getNestedValue", () => {
-    it("gets top-level value", () => {
-      expect(getNestedValue({ a: 1 }, "a")).toBe(1);
+describe("Format detection", () => {
+  describe("detectFileFormat", () => {
+    it("detects JSON by extension", () => {
+      expect(detectFileFormat("package.json")).toBe("json");
+      expect(detectFileFormat("/path/to/config.json")).toBe("json");
     });
 
-    it("gets nested value", () => {
-      expect(getNestedValue({ a: { b: { c: 1 } } }, "a.b.c")).toBe(1);
+    it("detects TOML by extension", () => {
+      expect(detectFileFormat("Cargo.toml")).toBe("toml");
+      expect(detectFileFormat("pyproject.toml")).toBe("toml");
     });
 
-    it("returns undefined for missing path", () => {
-      expect(getNestedValue({ a: 1 }, "b")).toBe(undefined);
+    it("detects YAML by .yaml extension", () => {
+      expect(detectFileFormat("docker-compose.yaml")).toBe("yaml");
     });
 
-    it("returns undefined for null in path", () => {
-      expect(getNestedValue({ a: null }, "a.b")).toBe(undefined);
+    it("detects YAML by .yml extension", () => {
+      expect(detectFileFormat(".github/workflows/ci.yml")).toBe("yaml");
     });
 
-    it("handles array access via dot notation", () => {
-      expect(getNestedValue({ a: [1, 2, 3] }, "a.1")).toBe(2);
+    it("returns unknown for unrecognized extensions", () => {
+      expect(detectFileFormat("file.txt")).toBe("unknown");
+      expect(detectFileFormat("Makefile")).toBe("unknown");
     });
   });
 });
 
-describe("Workspace utilities", () => {
-  describe("getWorkspacePatterns", () => {
-    it("returns array workspaces directly", () => {
-      const pkg = { workspaces: ["packages/*"] };
-      expect(getWorkspacePatterns(pkg)).toEqual(["packages/*"]);
-    });
+describe("TOML parser", () => {
+  it("parses simple key-value pairs", () => {
+    const result = parseToml('name = "fjsf"\nversion = "1.0.0"');
+    expect(result).toEqual({ name: "fjsf", version: "1.0.0" });
+  });
 
-    it("returns packages from object workspaces", () => {
-      const pkg = { workspaces: { packages: ["apps/*", "libs/*"] } };
-      expect(getWorkspacePatterns(pkg)).toEqual(["apps/*", "libs/*"]);
-    });
+  it("parses integers and booleans", () => {
+    const result = parseToml("port = 8080\ndebug = true\nverbose = false");
+    expect(result).toEqual({ port: 8080, debug: true, verbose: false });
+  });
 
-    it("returns empty array when no workspaces", () => {
-      expect(getWorkspacePatterns({})).toEqual([]);
-    });
+  it("parses table headers", () => {
+    const result = parseToml('[scripts]\nbuild = "npm run build"\ntest = "npm test"');
+    expect(result).toEqual({ scripts: { build: "npm run build", test: "npm test" } });
+  });
 
-    it("returns empty array for undefined workspaces", () => {
-      expect(getWorkspacePatterns({ workspaces: undefined })).toEqual([]);
-    });
+  it("parses nested table paths", () => {
+    const result = parseToml('[tool.taskipy.tasks]\nbuild = "python setup.py build"');
+    expect(result?.tool).toEqual({ taskipy: { tasks: { build: "python setup.py build" } } });
+  });
+
+  it("parses inline arrays", () => {
+    const result = parseToml('features = ["serde", "json"]');
+    expect(result).toEqual({ features: ["serde", "json"] });
+  });
+
+  it("parses inline tables", () => {
+    const result = parseToml('author = { name = "Alice", email = "alice@example.com" }');
+    expect(result?.author).toEqual({ name: "Alice", email: "alice@example.com" });
+  });
+
+  it("ignores comments", () => {
+    const result = parseToml('# This is a comment\nname = "test" # inline comment');
+    expect(result).toEqual({ name: "test" });
+  });
+
+  it("parses array tables [[key]]", () => {
+    const content =
+      '[[bin]]\nname = "fjsf"\npath = "src/main.rs"\n\n[[bin]]\nname = "fjsf-alt"\npath = "src/alt.rs"';
+    const result = parseToml(content);
+    expect(Array.isArray(result?.bin)).toBe(true);
+    expect((result?.bin as unknown[]).length).toBe(2);
+  });
+
+  it("parses literal strings without escape processing", () => {
+    const result = parseToml("path = 'C:\\\\Users\\\\foo'");
+    expect(result?.path).toBe("C:\\\\Users\\\\foo");
+  });
+
+  it("returns null for truly invalid content", () => {
+    expect(parseToml(null as unknown as string)).toBe(null);
+  });
+
+  it("parses Cargo.toml-like structure", () => {
+    const content = `[package]
+name = "my-crate"
+version = "0.1.0"
+
+[scripts]
+build = "cargo build"
+test = "cargo test"
+`;
+    const result = parseToml(content);
+    expect(result?.package).toEqual({ name: "my-crate", version: "0.1.0" });
+    expect(result?.scripts).toEqual({ build: "cargo build", test: "cargo test" });
   });
 });
 
-describe("Build command utilities", () => {
-  describe("buildRunCommand", () => {
-    const rootScript: Script = {
-      name: "test",
-      command: "jest",
-      workspace: "root",
-      packagePath: "package.json",
-    };
-    const workspaceScript: Script = {
-      name: "build",
-      command: "tsc",
-      workspace: "@app/core",
-      packagePath: "packages/core/package.json",
-    };
-
-    it("builds npm command for root package", () => {
-      expect(buildRunCommand(rootScript, "npm")).toEqual([
-        "npm",
-        "run",
-        "test",
-      ]);
-    });
-
-    it("builds npm command for workspace package", () => {
-      expect(buildRunCommand(workspaceScript, "npm")).toEqual([
-        "npm",
-        "run",
-        "build",
-        "--workspace=@app/core",
-      ]);
-    });
-
-    it("builds pnpm command for root package", () => {
-      expect(buildRunCommand(rootScript, "pnpm")).toEqual([
-        "pnpm",
-        "run",
-        "test",
-      ]);
-    });
-
-    it("builds pnpm command for workspace package", () => {
-      expect(buildRunCommand(workspaceScript, "pnpm")).toEqual([
-        "pnpm",
-        "--filter",
-        "@app/core",
-        "run",
-        "build",
-      ]);
-    });
-
-    it("builds yarn command for root package", () => {
-      expect(buildRunCommand(rootScript, "yarn")).toEqual([
-        "yarn",
-        "run",
-        "test",
-      ]);
-    });
-
-    it("builds yarn command for workspace package", () => {
-      expect(buildRunCommand(workspaceScript, "yarn")).toEqual([
-        "yarn",
-        "workspace",
-        "@app/core",
-        "run",
-        "build",
-      ]);
-    });
-
-    it("builds bun command for root package", () => {
-      expect(buildRunCommand(rootScript, "bun")).toEqual([
-        "bun",
-        "run",
-        "test",
-      ]);
-    });
-
-    it("builds bun command for workspace package", () => {
-      expect(buildRunCommand(workspaceScript, "bun")).toEqual([
-        "bun",
-        "--filter",
-        "@app/core",
-        "run",
-        "build",
-      ]);
-    });
+describe("YAML parser", () => {
+  it("parses simple key-value pairs", () => {
+    const result = parseYaml("name: fjsf\nversion: 1.0.0");
+    expect(result?.name).toBe("fjsf");
+    expect(result?.version).toBe("1.0.0");
   });
 
-  describe("buildSimpleRunCommand", () => {
-    it("builds npm command", () => {
-      expect(buildSimpleRunCommand("npm", "test")).toEqual([
-        "npm",
-        "run",
-        "test",
-      ]);
-    });
+  it("parses nested objects", () => {
+    const content = "scripts:\n  build: npm run build\n  test: npm test";
+    const result = parseYaml(content);
+    expect(result?.scripts).toEqual({ build: "npm run build", test: "npm test" });
+  });
 
-    it("builds pnpm command", () => {
-      expect(buildSimpleRunCommand("pnpm", "build")).toEqual([
-        "pnpm",
-        "run",
-        "build",
-      ]);
-    });
+  it("parses sequences", () => {
+    const content = "items:\n  - one\n  - two\n  - three";
+    const result = parseYaml(content);
+    expect(result?.items).toEqual(["one", "two", "three"]);
+  });
 
-    it("builds yarn command", () => {
-      expect(buildSimpleRunCommand("yarn", "dev")).toEqual([
-        "yarn",
-        "run",
-        "dev",
-      ]);
-    });
+  it("parses sequences of objects", () => {
+    const content =
+      "steps:\n  - name: Run tests\n    run: npm test\n  - name: Build\n    run: npm run build";
+    const result = parseYaml(content);
+    const steps = result?.steps as Record<string, string>[];
+    expect(steps).toHaveLength(2);
+    expect(steps[0]!.name).toBe("Run tests");
+    expect(steps[0]!.run).toBe("npm test");
+    expect(steps[1]!.run).toBe("npm run build");
+  });
 
-    it("builds bun command", () => {
-      expect(buildSimpleRunCommand("bun", "start")).toEqual([
-        "bun",
-        "run",
-        "start",
-      ]);
-    });
+  it("parses booleans", () => {
+    const result = parseYaml("enabled: true\ndisabled: false");
+    expect(result?.enabled).toBe(true);
+    expect(result?.disabled).toBe(false);
+  });
 
-    it("defaults to npm for unknown manager", () => {
-      expect(buildSimpleRunCommand("unknown", "test")).toEqual([
-        "npm",
-        "run",
-        "test",
-      ]);
-    });
+  it("parses null values", () => {
+    const result = parseYaml("value: null\nother: ~");
+    expect(result?.value).toBe(null);
+    expect(result?.other).toBe(null);
+  });
+
+  it("parses numbers", () => {
+    const result = parseYaml("port: 8080\nratio: 0.5");
+    expect(result?.port).toBe(8080);
+    expect(result?.ratio).toBe(0.5);
+  });
+
+  it("ignores comments", () => {
+    const result = parseYaml("# comment\nname: test # inline");
+    expect(result?.name).toBe("test");
+  });
+
+  it("skips document separators", () => {
+    const result = parseYaml("---\nname: test");
+    expect(result?.name).toBe("test");
+  });
+
+  it("parses quoted strings", () => {
+    const result = parseYaml("name: \"hello world\"\nother: 'single quoted'");
+    expect(result?.name).toBe("hello world");
+    expect(result?.other).toBe("single quoted");
+  });
+
+  it("parses GitHub Actions-like structure", () => {
+    const content = `jobs:
+  build:
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run tests
+        run: npm test
+`;
+    const result = parseYaml(content);
+    const build = (result?.jobs as Record<string, unknown>)?.build as Record<string, unknown>;
+    const steps = build?.steps as Record<string, string>[];
+    expect(steps).toHaveLength(2);
+    expect(steps[1]!.run).toBe("npm test");
+  });
+
+  it("returns null on parse error", () => {
+    expect(parseYaml(null as unknown as string)).toBe(null);
   });
 });
 
-describe("Completion utilities", () => {
-  describe("matchesQuery", () => {
-    const script = { name: "test:unit", workspace: "@app/core" };
-
-    it("returns true for empty query", () => {
-      expect(matchesQuery(script, "")).toBe(true);
+describe("Script extraction", () => {
+  describe("extractScripts", () => {
+    it("extracts scripts section", () => {
+      const obj = { scripts: { build: "npm run build", test: "npm test" } };
+      const entries = extractScripts(obj, "package.json", "my-pkg");
+      expect(entries).toHaveLength(2);
+      expect(entries.find((e) => e.path === "build")?.value).toBe("npm run build");
+      expect(entries.find((e) => e.path === "test")?.value).toBe("npm test");
     });
 
-    it("matches by script name", () => {
-      expect(matchesQuery(script, "test")).toBe(true);
-      expect(matchesQuery(script, "unit")).toBe(true);
+    it("extracts tasks section", () => {
+      const obj = { tasks: { compile: "tsc", lint: "eslint ." } };
+      const entries = extractScripts(obj, "Cargo.toml", "my-crate");
+      expect(entries).toHaveLength(2);
+      expect(entries.find((e) => e.path === "compile")?.value).toBe("tsc");
     });
 
-    it("matches by workspace name", () => {
-      expect(matchesQuery(script, "core")).toBe(true);
-      expect(matchesQuery(script, "app")).toBe(true);
+    it("extracts jobs section", () => {
+      const obj = { jobs: { deploy: "kubectl apply -f .", test: "pytest" } };
+      const entries = extractScripts(obj, "ci.yml", "ci");
+      expect(entries).toHaveLength(2);
     });
 
-    it("expects lowercase query (caller must lowercase)", () => {
-      // Function expects lowerQuery - uppercase won't match
-      expect(matchesQuery(script, "TEST")).toBe(false);
-      expect(matchesQuery(script, "test")).toBe(true);
+    it("skips non-string values in script sections", () => {
+      const obj = { scripts: { build: "tsc", config: { nested: "ignored" } } };
+      const entries = extractScripts(obj, "file.json", "ws");
+      expect(entries).toHaveLength(1);
+      expect(entries[0]!.path).toBe("build");
     });
 
-    it("returns false for non-matching query", () => {
-      expect(matchesQuery(script, "xyz")).toBe(false);
+    it("returns empty array when no known sections", () => {
+      const obj = { name: "test", version: "1.0.0" };
+      const entries = extractScripts(obj, "file.json", "ws");
+      expect(entries).toHaveLength(0);
     });
-  });
 
-  describe("formatCompletion", () => {
-    it("formats script as completion line", () => {
-      const script: Script = {
-        name: "test",
-        command: "jest",
-        workspace: "@app/core",
-        packagePath: "packages/core/package.json",
-      };
-      expect(formatCompletion(script)).toBe("test:[@app/core] jest");
+    it("extracts scripts from nested paths like tool.taskipy.tasks", () => {
+      const obj = { tool: { taskipy: { tasks: { build: "python setup.py build" } } } };
+      const entries = extractScripts(obj, "pyproject.toml", "my-pkg");
+      expect(entries).toHaveLength(1);
+      expect(entries[0]!.path).toBe("build");
+      expect(entries[0]!.value).toBe("python setup.py build");
+    });
+
+    it("sets correct filePath and workspace on entries", () => {
+      const obj = { scripts: { build: "tsc" } };
+      const entries = extractScripts(obj, "packages/core/package.json", "@core/pkg");
+      expect(entries[0]!.filePath).toBe("packages/core/package.json");
+      expect(entries[0]!.workspace).toBe("@core/pkg");
     });
   });
 });
@@ -779,12 +644,8 @@ describe("Argument parsing utilities", () => {
       expect(opts.help).toBe(false);
       expect(opts.version).toBe(false);
       expect(opts.quit).toBe(false);
-      expect(opts.completions).toBe(false);
-      expect(opts.completionsQuery).toBe("");
-      expect(opts.mode).toBe("scripts");
+      expect(opts.mode).toBe("default");
       expect(opts.filePath).toBe(undefined);
-      expect(opts.execKey).toBe(undefined);
-      expect(opts.initMode).toBe("widget");
     });
   });
 
@@ -825,17 +686,6 @@ describe("Argument parsing utilities", () => {
     });
   });
 
-  describe("isCompletionsArg", () => {
-    it("recognizes completions arguments", () => {
-      expect(isCompletionsArg("completions")).toBe(true);
-      expect(isCompletionsArg("--completions")).toBe(true);
-    });
-
-    it("rejects non-completions arguments", () => {
-      expect(isCompletionsArg("complete")).toBe(false);
-    });
-  });
-
   describe("isFindArg", () => {
     it("recognizes find arguments", () => {
       expect(isFindArg("find")).toBe(true);
@@ -855,17 +705,6 @@ describe("Argument parsing utilities", () => {
 
     it("rejects non-path arguments", () => {
       expect(isPathArg("file")).toBe(false);
-    });
-  });
-
-  describe("isExecArg", () => {
-    it("recognizes exec arguments", () => {
-      expect(isExecArg("exec")).toBe(true);
-      expect(isExecArg("e")).toBe(true);
-    });
-
-    it("rejects non-exec arguments", () => {
-      expect(isExecArg("run")).toBe(false);
     });
   });
 
@@ -897,25 +736,25 @@ describe("Argument parsing utilities", () => {
 });
 
 describe("Key detection utilities", () => {
-  describe("isExitKey", () => {
+  describe("isHardExit", () => {
     it("recognizes Ctrl+C", () => {
-      expect(isExitKey(3, new Uint8Array([3]))).toBe(true);
+      expect(isHardExit(3, new Uint8Array([3]))).toBe(true);
     });
 
     it("recognizes Escape (single byte)", () => {
-      expect(isExitKey(27, new Uint8Array([27]))).toBe(true);
+      expect(isHardExit(27, new Uint8Array([27]))).toBe(true);
     });
 
-    it("recognizes q key", () => {
-      expect(isExitKey(113, new Uint8Array([113]))).toBe(true);
+    it("does not treat q as hard exit", () => {
+      expect(isHardExit(113, new Uint8Array([113]))).toBe(false);
     });
 
     it("does not treat escape sequence as exit", () => {
-      expect(isExitKey(27, new Uint8Array([27, 91, 65]))).toBe(false);
+      expect(isHardExit(27, new Uint8Array([27, 91, 65]))).toBe(false);
     });
 
     it("rejects other keys", () => {
-      expect(isExitKey(65, new Uint8Array([65]))).toBe(false);
+      expect(isHardExit(65, new Uint8Array([65]))).toBe(false);
     });
   });
 
@@ -1003,8 +842,8 @@ describe("KEY_CODES constants", () => {
   it("has correct values", () => {
     expect(KEY_CODES.CTRL_C).toBe(3);
     expect(KEY_CODES.BACKSPACE).toBe(8);
-    expect(KEY_CODES.ENTER_CR).toBe(10);
-    expect(KEY_CODES.ENTER_LF).toBe(13);
+    expect(KEY_CODES.ENTER_LF).toBe(10);
+    expect(KEY_CODES.ENTER_CR).toBe(13);
     expect(KEY_CODES.ESCAPE).toBe(27);
     expect(KEY_CODES.BRACKET).toBe(91);
     expect(KEY_CODES.ARROW_UP).toBe(65);
@@ -1147,185 +986,6 @@ describe("Application cursor mode", () => {
 
       expect(isArrowSequence(27, normalUp)).toBe(true);
       expect(isArrowSequence(27, appUp)).toBe(true);
-    });
-  });
-});
-
-describe("Widget argument parsing", () => {
-  describe("isWidgetArg", () => {
-    it("recognizes --widget flag", () => {
-      expect(isWidgetArg("--widget")).toBe(true);
-    });
-
-    it("recognizes -w shorthand", () => {
-      expect(isWidgetArg("-w")).toBe(true);
-    });
-
-    it("rejects other flags", () => {
-      expect(isWidgetArg("widget")).toBe(false);
-      expect(isWidgetArg("--w")).toBe(false);
-      expect(isWidgetArg("-widget")).toBe(false);
-    });
-  });
-});
-
-describe("Widget state management", () => {
-  interface WidgetState {
-    query: string;
-    selectedIndex: number;
-    matches: Array<{ item: { name: string } }>;
-  }
-
-  const handleWidgetArrowKey = (
-    state: WidgetState,
-    key: Uint8Array,
-  ): number => {
-    const isUpArrow = key[2] === KEY_CODES.ARROW_UP;
-    const isDownArrow = key[2] === KEY_CODES.ARROW_DOWN;
-
-    if (isUpArrow) {
-      return Math.max(0, state.selectedIndex - 1);
-    }
-    if (isDownArrow) {
-      return Math.min(state.matches.length - 1, state.selectedIndex + 1);
-    }
-    return state.selectedIndex;
-  };
-
-  describe("handleWidgetArrowKey", () => {
-    const createState = (selectedIndex: number, matchCount: number) => ({
-      query: "",
-      selectedIndex,
-      matches: Array(matchCount)
-        .fill(null)
-        .map((_, i) => ({ item: { name: `script${i}` } })),
-    });
-
-    it("moves selection up on up arrow", () => {
-      const state = createState(2, 5);
-      const key = new Uint8Array([27, 91, KEY_CODES.ARROW_UP]);
-      expect(handleWidgetArrowKey(state, key)).toBe(1);
-    });
-
-    it("moves selection down on down arrow", () => {
-      const state = createState(2, 5);
-      const key = new Uint8Array([27, 91, KEY_CODES.ARROW_DOWN]);
-      expect(handleWidgetArrowKey(state, key)).toBe(3);
-    });
-
-    it("clamps at top", () => {
-      const state = createState(0, 5);
-      const key = new Uint8Array([27, 91, KEY_CODES.ARROW_UP]);
-      expect(handleWidgetArrowKey(state, key)).toBe(0);
-    });
-
-    it("clamps at bottom", () => {
-      const state = createState(4, 5);
-      const key = new Uint8Array([27, 91, KEY_CODES.ARROW_DOWN]);
-      expect(handleWidgetArrowKey(state, key)).toBe(4);
-    });
-
-    it("handles application cursor mode up arrow", () => {
-      const state = createState(2, 5);
-      const key = new Uint8Array([
-        27,
-        KEY_CODES.BRACKET_APP,
-        KEY_CODES.ARROW_UP,
-      ]);
-      expect(handleWidgetArrowKey(state, key)).toBe(1);
-    });
-
-    it("handles application cursor mode down arrow", () => {
-      const state = createState(2, 5);
-      const key = new Uint8Array([
-        27,
-        KEY_CODES.BRACKET_APP,
-        KEY_CODES.ARROW_DOWN,
-      ]);
-      expect(handleWidgetArrowKey(state, key)).toBe(3);
-    });
-
-    it("returns unchanged index for other keys", () => {
-      const state = createState(2, 5);
-      const key = new Uint8Array([27, 91, 67]); // right arrow
-      expect(handleWidgetArrowKey(state, key)).toBe(2);
-    });
-  });
-});
-
-describe("Completions output format", () => {
-  describe("formatCompletion", () => {
-    it("formats script with all fields", () => {
-      const script: Script = {
-        name: "build",
-        command: "tsc -b",
-        workspace: "@myorg/core",
-        packagePath: "packages/core/package.json",
-      };
-      expect(formatCompletion(script)).toBe("build:[@myorg/core] tsc -b");
-    });
-
-    it("formats root workspace script", () => {
-      const script: Script = {
-        name: "test",
-        command: "jest",
-        workspace: "root",
-        packagePath: "package.json",
-      };
-      expect(formatCompletion(script)).toBe("test:[root] jest");
-    });
-
-    it("handles complex commands", () => {
-      const script: Script = {
-        name: "dev",
-        command: "next dev --turbo --port 3000",
-        workspace: "web",
-        packagePath: "apps/web/package.json",
-      };
-      expect(formatCompletion(script)).toBe(
-        "dev:[web] next dev --turbo --port 3000",
-      );
-    });
-
-    it("handles special characters in workspace name", () => {
-      const script: Script = {
-        name: "lint",
-        command: "eslint .",
-        workspace: "@scope/my-pkg",
-        packagePath: "packages/my-pkg/package.json",
-      };
-      expect(formatCompletion(script)).toBe("lint:[@scope/my-pkg] eslint .");
-    });
-  });
-
-  describe("matchesQuery", () => {
-    const scripts = [
-      { name: "test", workspace: "root" },
-      { name: "test:unit", workspace: "@app/core" },
-      { name: "build", workspace: "@app/ui" },
-      { name: "dev", workspace: "@app/web" },
-    ];
-
-    it("returns all scripts for empty query", () => {
-      const matches = scripts.filter((s) => matchesQuery(s, ""));
-      expect(matches.length).toBe(4);
-    });
-
-    it("filters by script name", () => {
-      const matches = scripts.filter((s) => matchesQuery(s, "test"));
-      expect(matches.length).toBe(2);
-      expect(matches.every((s) => s.name.includes("test"))).toBe(true);
-    });
-
-    it("filters by workspace", () => {
-      const matches = scripts.filter((s) => matchesQuery(s, "core"));
-      expect(matches.length).toBe(1);
-      expect(matches[0]!.workspace).toBe("@app/core");
-    });
-
-    it("is case-insensitive (expects lowercase query)", () => {
-      const matches = scripts.filter((s) => matchesQuery(s, "app"));
-      expect(matches.length).toBe(3);
     });
   });
 });

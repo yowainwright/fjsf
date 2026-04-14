@@ -76,9 +76,7 @@ const runTest = (scenario: TestScenario): boolean => {
 
 const runAllTests = () => {
   console.log("Running run command e2e tests...\n");
-  console.log(
-    "Note: Full interactive testing requires manual or specialized tooling",
-  );
+  console.log("Note: Full interactive testing requires manual or specialized tooling");
 
   const results = scenarios.map(runTest);
   const passed = results.filter(Boolean).length;
